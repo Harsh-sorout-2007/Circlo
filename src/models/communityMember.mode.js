@@ -5,13 +5,11 @@ const communityMemberSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
     required: true,
-    unique: true,
   },
   community: {
     type: Schema.Types.ObjectId,
     ref: "Community",
     required: true,
-    unique: true,
   },
   role: {
     type: String,
@@ -26,6 +24,8 @@ const communityMemberSchema = new Schema({
     type: Date,
   },
 });
+
+communityMemberSchema.index({ user: 1, community: 1 }, { unique: true });
 
 export const CommunityMember = mongoose.model(
   "CommunityMember",
