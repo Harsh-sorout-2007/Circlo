@@ -16,9 +16,13 @@
     "start": "node src/index.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "crypto": "^1.0.1",
+    "cyrpto": "^0.0.1-security",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-validator": "^7.3.2",
+    "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.6.0",
     "mongoose": "^9.9.3",
     "nodemon": "^3.1.14",

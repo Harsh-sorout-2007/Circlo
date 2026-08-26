@@ -6,16 +6,16 @@ A full-stack **MERN** social discussion platform inspired by Reddit, built as a 
 
 The platform allows users to:
 
-* Create accounts and securely authenticate
-* Create and join communities
-* Create, edit, and delete posts
-* Comment and reply to comments
-* Upvote and downvote posts and comments
-* Save posts
-* Discover content through personalized feeds
-* Search users, communities, and posts
-* Build karma through community interaction
-* Moderate communities through role-based permissions
+- Create accounts and securely authenticate
+- Create and join communities
+- Create, edit, and delete posts
+- Comment and reply to comments
+- Upvote and downvote posts and comments
+- Save posts
+- Discover content through personalized feeds
+- Search users, communities, and posts
+- Build karma through community interaction
+- Moderate communities through role-based permissions
 
 The project focuses particularly on **backend architecture, business logic, database design, authorization, and user experience**.
 
@@ -38,81 +38,81 @@ These technologies are defined as the target stack in the project requirements.
 
 ### Authentication
 
-* Register and login
-* JWT access and refresh tokens
-* Logout
-* Token refresh
-* Change password
-* Forgot/reset password
-* Protected routes
+- Register and login
+- JWT access and refresh tokens
+- Logout
+- Token refresh
+- Change password
+- Forgot/reset password
+- Protected routes
 
 ### User Profiles
 
-* Username
-* Display name
-* Email
-* Avatar
-* Bio
-* Karma
-* Post and comment counts
-* Profile posts and comments
+- Username
+- Display name
+- Email
+- Avatar
+- Bio
+- Karma
+- Post and comment counts
+- Profile posts and comments
 
 ### Communities
 
-* Create communities
-* Join/leave communities
-* Community descriptions and rules
-* Community icons/banners
-* Member management
-* Owner/moderator/member roles
+- Create communities
+- Join/leave communities
+- Community descriptions and rules
+- Community icons/banners
+- Member management
+- Owner/moderator/member roles
 
 ### Posts
 
 Supports:
 
-* Text posts
-* Image posts
-* Link posts
+- Text posts
+- Image posts
+- Link posts
 
 Users can:
 
-* Create posts
-* Edit their own posts
-* Delete their own posts
-* View post details
-* Browse community feeds
-* Browse personalized feeds
+- Create posts
+- Edit their own posts
+- Delete their own posts
+- View post details
+- Browse community feeds
+- Browse personalized feeds
 
 ### Comments
 
-* Comment on posts
-* Reply to comments
-* Nested comments
-* Edit/delete own comments
-* Moderator comment removal
+- Comment on posts
+- Reply to comments
+- Nested comments
+- Edit/delete own comments
+- Moderator comment removal
 
 ### Voting
 
-* Upvote
-* Downvote
-* Remove vote
-* Vote switching
-* One active vote per user per target
+- Upvote
+- Downvote
+- Remove vote
+- Vote switching
+- One active vote per user per target
 
 ### Saved Posts
 
-* Save posts
-* Unsave posts
-* View saved posts
-* Prevent duplicate saves
+- Save posts
+- Unsave posts
+- View saved posts
+- Prevent duplicate saves
 
 ### Feeds
 
 Home and community feeds support:
 
-* **New**
-* **Top**
-* **Hot/Trending**
+- **New**
+- **Top**
+- **Hot/Trending**
 
 The hot feed can use score, comments, and recency as initial ranking factors.
 
@@ -120,9 +120,9 @@ The hot feed can use score, comments, and recency as initial ranking factors.
 
 Search across:
 
-* Users
-* Communities
-* Posts
+- Users
+- Communities
+- Posts
 
 Possible filters include community, post type, date, and sort order.
 
@@ -130,13 +130,13 @@ Possible filters include community, post type, date, and sort order.
 
 Community moderators can:
 
-* Remove posts
-* Remove comments
-* Ban/unban users
-* Pin posts
-* Edit community rules
-* Manage community information
-* Review community-related reports
+- Remove posts
+- Remove comments
+- Ban/unban users
+- Pin posts
+- Edit community rules
+- Manage community information
+- Review community-related reports
 
 Platform administrators can additionally manage users, communities, reports, inappropriate content, and platform statistics.
 
@@ -144,33 +144,33 @@ Platform administrators can additionally manage users, communities, reports, ina
 
 This project is designed to provide practical experience with:
 
-* REST API design
-* Authentication and authorization
-* MongoDB schema design
-* Mongoose relationships and population
-* MongoDB aggregation pipelines
-* Pagination
-* Search and filtering
-* File uploads
-* Role-based permissions
-* Complex business logic
-* Frontend state management
-* Error handling
-* API validation
-* Deployment
+- REST API design
+- Authentication and authorization
+- MongoDB schema design
+- Mongoose relationships and population
+- MongoDB aggregation pipelines
+- Pagination
+- Search and filtering
+- File uploads
+- Role-based permissions
+- Complex business logic
+- Frontend state management
+- Error handling
+- API validation
+- Deployment
 
 ## 📦 Core Data Models
 
 The planned database entities include:
 
-* `User`
-* `Community`
-* `CommunityMember`
-* `Post`
-* `Comment`
-* `Vote`
-* `SavedPost`
-* `Report`
+- `User`
+- `Community`
+- `CommunityMember`
+- `Post`
+- `Comment`
+- `Vote`
+- `SavedPost`
+- `Report`
 
 The exact schema design will be finalized during implementation.
 
@@ -231,16 +231,16 @@ The complete API structure is defined in the project requirements.
 
 The API validates:
 
-* Required fields
-* String lengths
-* Email format
-* Username format
-* Password requirements
-* Community names
-* Post titles
-* URLs
-* MongoDB ObjectIds
-* Vote values
+- Required fields
+- String lengths
+- Email format
+- Username format
+- Password requirements
+- Community names
+- Post titles
+- URLs
+- MongoDB ObjectIds
+- Vote values
 
 Errors should follow a consistent structure:
 
@@ -256,13 +256,13 @@ Errors should follow a consistent structure:
 
 The application should:
 
-* Use database indexes
-* Paginate large collections
-* Avoid unnecessary queries
-* Return only required fields
-* Use MongoDB aggregation where appropriate
-* Optimize uploaded media
-* Use Mongoose `.lean()` where appropriate
+- Use database indexes
+- Paginate large collections
+- Avoid unnecessary queries
+- Return only required fields
+- Use MongoDB aggregation where appropriate
+- Optimize uploaded media
+- Use Mongoose `.lean()` where appropriate
 
 Pagination is required for posts, comments, communities, search results, and user posts.
 
@@ -270,17 +270,17 @@ Pagination is required for posts, comments, communities, search results, and use
 
 The application must:
 
-* Hash passwords
-* Never expose passwords in API responses
-* Protect authenticated routes
-* Validate user input
-* Validate ObjectIds
-* Enforce authorization server-side
-* Securely handle authentication tokens
-* Avoid exposing sensitive server errors
-* Configure CORS appropriately
-* Apply rate limiting where appropriate
-* Safely handle user-generated content
+- Hash passwords
+- Never expose passwords in API responses
+- Protect authenticated routes
+- Validate user input
+- Validate ObjectIds
+- Enforce authorization server-side
+- Securely handle authentication tokens
+- Avoid exposing sensitive server errors
+- Configure CORS appropriately
+- Apply rate limiting where appropriate
+- Safely handle user-generated content
 
 ## 🗺️ Development Roadmap
 
@@ -325,45 +325,45 @@ The MVP is considered complete when a user can:
 
 The following should be implemented only after the core application works:
 
-* Real-time chat
-* WebSockets
-* Direct messaging
-* Video calls
-* Live streaming
-* AI recommendations
-* Mobile application
-* Microservices
-* Advanced distributed caching
-* Cryptocurrency/rewards
-* Payment systems
+- Real-time chat
+- WebSockets
+- Direct messaging
+- Video calls
+- Live streaming
+- AI recommendations
+- Mobile application
+- Microservices
+- Advanced distributed caching
+- Cryptocurrency/rewards
+- Payment systems
 
 ## 🏆 Future Resume-Level Features
 
 After completing the MVP, 2–4 advanced features can be added:
 
-* Hot/Trending ranking algorithm
-* Advanced full-text search
-* Advanced moderation and audit history
-* Analytics dashboard using MongoDB aggregation
-* Media upload and processing pipeline
+- Hot/Trending ranking algorithm
+- Advanced full-text search
+- Advanced moderation and audit history
+- Analytics dashboard using MongoDB aggregation
+- Media upload and processing pipeline
 
 ## 📈 Success Criteria
 
 The project should ultimately provide:
 
-* End-to-end working user flows
-* Secure authentication
-* Server-side authorization
-* Correct database relationships
-* Validated and documented APIs
-* Working pagination
-* Consistent voting
-* Nested comments
-* Community moderation
-* Reliable search and feeds
-* Responsive UI
-* Production deployment
-* Organized and maintainable code
+- End-to-end working user flows
+- Secure authentication
+- Server-side authorization
+- Correct database relationships
+- Validated and documented APIs
+- Working pagination
+- Consistent voting
+- Nested comments
+- Community moderation
+- Reliable search and feeds
+- Responsive UI
+- Production deployment
+- Organized and maintainable code
 
 ## 🔄 Typical User Journey
 

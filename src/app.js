@@ -1,5 +1,6 @@
 import express from "express";
 import healthCheckRouter from "./routes/healthcheck.routes.js";
+import communityRouter from "./routes/community.routes.js";
 
 const app = express();
 
@@ -9,5 +10,6 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 
 app.use("/api/v1/healthcheck", healthCheckRouter);
+app.use("/api/v1/communities", communityRouter);
 
 export { app };
