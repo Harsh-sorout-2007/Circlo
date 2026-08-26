@@ -4,5 +4,5 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
 const verifyJWT = asyncHandler(async (req, res, next) => {
-    //wait
+  //wait
 });
