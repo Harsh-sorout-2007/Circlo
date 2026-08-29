@@ -13,8 +13,8 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 app.use("/api/v1/healthcheck", healthCheckRouter);
-app.use("/api/v1/communities", communityRouter);
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/communities", communityRouter);
 
 //global Error handler
 app.use((err, req, res, next) => {
