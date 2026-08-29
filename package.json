@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "crypto": "^1.0.1",
     "cyrpto": "^0.0.1-security",
     "dotenv": "^17.4.2",

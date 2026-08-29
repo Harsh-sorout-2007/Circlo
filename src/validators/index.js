@@ -27,6 +27,19 @@ const userRegisterValidator = () => {
   ];
 };
 
+const userLoginValidator = () => {
+  return [
+    body("email")
+      .trim()
+      .notEmpty()
+      .withMessage("Email is required")
+      .isEmail()
+      .withMessage("Please enter a valid email"),
+
+    body("password").trim().notEmpty().withMessage("Password is required"),
+  ];
+};
+
 const communityValidator = () => {
   return [
     body("name")
@@ -47,4 +60,4 @@ const communityValidator = () => {
   ];
 };
 
-export { userRegisterValidator, communityValidator };
+export { userRegisterValidator, userLoginValidator, communityValidator };
