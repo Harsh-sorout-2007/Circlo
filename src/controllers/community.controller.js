@@ -160,9 +160,147 @@ const joinCommunity = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while joining community");
   }
 
+  await Community.findByIdAndUpdate(communityId, {
+    $inc: { memberCount: 1 },
+  });
+
   return res
     .status(200)
     .json(new ApiResponse(200, member, "Community joined successfully"));
+});
+
+const leaveCommunity = asyncHandler(async (req, res) => {
+  const { communityId } = req.params;
+  const user = req.user._id;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  if (isMember.role === COMMUNITY_ROLES.OWNER) {
+    throw new ApiError(400, "Community owner cannot leave the community");
+  }
+
+  const isMember = await CommunityMember.findOne({
+    community: communityId,
+    user: user,
+  });
+
+  if (!isMember) {
+    throw new ApiError(
+      404,
+      "You are not member of community or community doesnt exist",
+    );
+  }
+
+  await CommunityMember.deleteOne({
+    user: user,
+    community: communityId,
+  });
+
+  const updatedCommunity = await Community.findByIdAndUpdate(
+    communityId,
+    {
+      $inc: { memberCount: -1 },
+    },
+    { new: true },
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        updatedCommunity,
+        "Member left the community successfully",
+      ),
+    );
+});
+
+const getCommunityMembers = asyncHandler(async (req, res) => {
+  const { communityId } = req.params;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const members = await CommunityMember.find({
+    community: communityId,
+  }).populate("user", "username displayName avatar");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, members, "Members fetched successfully"));
+});
+
+const updateMemberRole = asyncHandler(async (req, res) => {
+  const { communityId, userId } = req.params;
+  const requestingUser = req.user._id;
+  const { role } = req.body;
+
+  if (role !== communityRoles.MEMBER && role !== communityRoles.MODERATOR) {
+    throw new ApiError(400, "Role can only be MEMBER or MODERATOR");
+  }
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const requestedMember = await CommunityMember.findOne({
+    community: communityId,
+    user: requestingUser,
+  });
+
+  if (!requestedMember) {
+    throw new ApiError(404, "You not a member of community");
+  }
+
+  const isOwner = requestedMember.role === communityRoles.OWNER;
+
+  if (!isOwner) {
+    throw new ApiError(
+      403,
+      "you do not have permission to change the member roles",
+    );
+  }
+
+  const member = await CommunityMember.findOne({
+    community: communityId,
+    user: userId,
+  });
+
+  if (!member) {
+    throw new ApiError(404, "User is not member of community");
+  }
+
+  if (member.role === communityRoles.OWNER) {
+    throw new ApiError(400, "Owner role cannot be changed");
+  }
+
+  const updatedMember = await CommunityMember.findByIdAndUpdate(
+    member._id,
+    {
+      $set: {
+        role: role,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedMember, "Member role updated successfully"),
+    );
 });
 
 export {
@@ -171,4 +309,7 @@ export {
   updateCommunity,
   deleteCommunity,
   joinCommunity,
+  leaveCommunity,
+  getCommunityMembers,
+  updateMemberRole,
 };

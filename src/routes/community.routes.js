@@ -5,6 +5,9 @@ import {
   updateCommunity,
   deleteCommunity,
   joinCommunity,
+  leaveCommunity,
+  getCommunityMembers,
+  updateMemberRole,
 } from "../controllers/community.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -23,5 +26,8 @@ router
   .delete(verifyJWT, deleteCommunity);
 
 router.route("/:communityId/join").post(verifyJWT, joinCommunity);
+router.route("/:communityId/leave").post(verifyJWT, leaveCommunity);
+router.route("/:communityId/members").get(verifyJWT, getCommunityMembers);
+router.route("/:communityId/:userId/role").patch(verifyJWT, updateMemberRole);
 
 export default router;
