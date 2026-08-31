@@ -179,10 +179,6 @@ const leaveCommunity = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Community not found");
   }
 
-  if (isMember.role === COMMUNITY_ROLES.OWNER) {
-    throw new ApiError(400, "Community owner cannot leave the community");
-  }
-
   const isMember = await CommunityMember.findOne({
     community: communityId,
     user: user,
@@ -193,6 +189,10 @@ const leaveCommunity = asyncHandler(async (req, res) => {
       404,
       "You are not member of community or community doesnt exist",
     );
+  }
+
+  if (isMember.role === communityRoles.OWNER) {
+    throw new ApiError(400, "Community owner cannot leave the community");
   }
 
   await CommunityMember.deleteOne({
