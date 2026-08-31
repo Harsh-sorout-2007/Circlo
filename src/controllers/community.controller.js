@@ -72,4 +72,60 @@ const deleteCommunity = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Community deleted successfully"));
 });
-export { createCommunity, deleteCommunity };
+
+const getCommunity = asyncHandler(async (req, res) => {
+  const { communityId } = req.params;
+
+  const community = await Community.findById(communityId).populate(
+    "owner",
+    "displayName username",
+  );
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, community, "Community fetched successfully"));
+});
+
+const updateCommunity = asyncHandler(async (req, res) => {
+  const { communityId } = req.params;
+  const { name, description, icon, banner, rules } = req.body;
+
+  const community = await Community.findOne({
+    _id: communityId,
+    owner: req.user._id,
+  });
+
+  if (!community) {
+    throw new ApiError(404, "Community not found or you are not the owner");
+  }
+
+  //handle partial updates
+  const updateData = {};
+  if (name !== undefined) updateData.name = name;
+  if (description !== undefined) updateData.description = description;
+  if (icon !== undefined) updateData.icon = icon;
+  if (banner !== undefined) updateData.banner = banner;
+  if (rules !== undefined) updateData.rules = rules;
+
+  const updatedCommunity = await Community.findByIdAndUpdate(
+    communityId,
+    {
+      $set: updateData,
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, updatedCommunity, "Community updated Successfully"),
+    );
+});
+export { createCommunity, getCommunity, updateCommunity, deleteCommunity };
