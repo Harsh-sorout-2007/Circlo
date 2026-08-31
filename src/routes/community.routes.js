@@ -4,6 +4,7 @@ import {
   getCommunity,
   updateCommunity,
   deleteCommunity,
+  joinCommunity,
 } from "../controllers/community.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -20,4 +21,7 @@ router
   .get(verifyJWT, getCommunity)
   .patch(verifyJWT, updateCommunity)
   .delete(verifyJWT, deleteCommunity);
+
+router.route("/:communityId/join").post(verifyJWT, joinCommunity);
+
 export default router;

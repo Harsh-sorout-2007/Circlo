@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-
+import { communityRoles } from "../utils/roles.js";
 const communityMemberSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
@@ -13,7 +13,7 @@ const communityMemberSchema = new Schema({
   },
   role: {
     type: String,
-    enum: ["OWNER", "MODERATOR", "MEMBER"],
+    enum: Object.values(communityRoles),
     required: true,
   },
   joinedAt: {

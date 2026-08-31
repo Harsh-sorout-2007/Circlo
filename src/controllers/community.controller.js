@@ -3,6 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Community } from "../models/community.model.js";
 import { CommunityMember } from "../models/communityMember.model.js";
+import { communityRoles } from "../utils/roles.js";
 
 const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
@@ -26,7 +27,7 @@ const createCommunity = asyncHandler(async (req, res) => {
   await CommunityMember.create({
     user: owner,
     community: community._id,
-    role: "OWNER",
+    role: communityRoles.OWNER,
     joinedAt: new Date(),
   });
 
@@ -128,4 +129,46 @@ const updateCommunity = asyncHandler(async (req, res) => {
       new ApiResponse(200, updatedCommunity, "Community updated Successfully"),
     );
 });
-export { createCommunity, getCommunity, updateCommunity, deleteCommunity };
+
+const joinCommunity = asyncHandler(async (req, res) => {
+  const { communityId } = req.params;
+  const user = req.user._id;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const existingMember = await CommunityMember.findOne({
+    user: user,
+    community: communityId,
+  });
+
+  if (existingMember) {
+    throw new ApiError(409, "You are already a member of this community");
+  }
+
+  const member = await CommunityMember.create({
+    user: user,
+    community: communityId,
+    role: communityRoles.MEMBER,
+    joinedAt: new Date(),
+  });
+
+  if (!member) {
+    throw new ApiError(500, "Something went wrong while joining community");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, member, "Community joined successfully"));
+});
+
+export {
+  createCommunity,
+  getCommunity,
+  updateCommunity,
+  deleteCommunity,
+  joinCommunity,
+};
