@@ -25,7 +25,8 @@ const communitySchema = new Schema(
       required: true,
     },
     rules: {
-      type: String,
+      type: [String],
+      default: [],
     },
     memberCount: {
       type: Number,

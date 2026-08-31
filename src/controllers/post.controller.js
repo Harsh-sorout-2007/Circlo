@@ -185,4 +185,125 @@ const deletePost = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Post deleted successfully"));
 });
 
-export { createPersonalPost, createCommunityPost, updatePost, deletePost };
+const getPost = asyncHandler(async (req, res) => {
+  const { postId } = req.params;
+
+  const post = await Post.findOne({
+    _id: postId,
+    isRemoved: false,
+  })
+    .populate("author", "username displayName avatar")
+    .populate("community", "name icon");
+
+  if (!post) {
+    throw new ApiError(404, "Post not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, post, "Post fetched successfully"));
+});
+
+const getCommunityPosts = asyncHandler(async (req, res) => {
+  const { communityId } = req.params;
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const posts = await Post.find({
+    community: communityId,
+    isRemoved: false,
+  })
+    .populate("author", "username displayName avatar")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalPosts = await Post.countDocuments({
+    community: communityId,
+    isRemoved: false,
+  });
+
+  const totalPages = Math.ceil(totalPosts / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        posts,
+        pagination: {
+          page,
+          limit,
+          totalPosts,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Community posts fetched successfully",
+    ),
+  );
+});
+
+const getPersonalPosts = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const skip = (page - 1) * limit;
+
+  const posts = await Post.find({
+    author: userId,
+    community: null,
+    isRemoved: false,
+  })
+    .populate("author", "username displayName avatar")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalPosts = await Post.countDocuments({
+    author: userId,
+    community: null,
+    isRemoved: false,
+  });
+
+  const totalPages = Math.ceil(totalPosts / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        posts,
+        pagination: {
+          page,
+          limit,
+          totalPosts,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Personal posts fetched successfully",
+    ),
+  );
+});
+
+export {
+  createPersonalPost,
+  createCommunityPost,
+  updatePost,
+  deletePost,
+  getPost,
+  getCommunityPosts,
+  getPersonalPosts,
+};
