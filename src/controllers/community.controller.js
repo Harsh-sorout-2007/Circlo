@@ -303,6 +303,60 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     );
 });
 
+const removeMember = asyncHandler(async (req, res) => {
+  const { communityId, userId } = req.params;
+  const requestingUser = req.user._id;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const requestedUser = await CommunityMember.findOne({
+    community: communityId,
+    user: requestingUser,
+  });
+
+  if (!requestedUser) {
+    throw new ApiError(403, "You are not a part of this community");
+  }
+
+  const member = await CommunityMember.findOne({
+    community: communityId,
+    user: userId,
+  });
+
+  if (!member) {
+    throw new ApiError(403, "Member is not part of community");
+  }
+
+  if (requestedUser.role === communityRoles.MEMBER) {
+    throw new ApiError(403, "Members do not have permission to remove users");
+  }
+
+  if (
+    requestedUser.role === communityRoles.MODERATOR &&
+    member.role !== communityRoles.MEMBER
+  ) {
+    throw new ApiError(403, "Moderators can only remove members");
+  }
+
+  if (member.role === communityRoles.OWNER) {
+    throw new ApiError(400, "Community owner cannot be removed");
+  }
+
+  await CommunityMember.findByIdAndDelete(member._id);
+
+  await Community.findByIdAndUpdate(communityId, {
+    $inc: { memberCount: -1 },
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "User removed from community successfully"));
+});
+
 export {
   createCommunity,
   getCommunity,
@@ -312,4 +366,5 @@ export {
   leaveCommunity,
   getCommunityMembers,
   updateMemberRole,
+  removeMember,
 };

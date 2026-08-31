@@ -8,6 +8,7 @@ import {
   leaveCommunity,
   getCommunityMembers,
   updateMemberRole,
+  removeMember,
 } from "../controllers/community.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -29,5 +30,6 @@ router.route("/:communityId/join").post(verifyJWT, joinCommunity);
 router.route("/:communityId/leave").post(verifyJWT, leaveCommunity);
 router.route("/:communityId/members").get(verifyJWT, getCommunityMembers);
 router.route("/:communityId/:userId/role").patch(verifyJWT, updateMemberRole);
+router.route("/:communityId/:userId").delete(verifyJWT, removeMember);
 
 export default router;
