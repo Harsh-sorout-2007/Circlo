@@ -1,8 +1,9 @@
 import express from "express";
 import healthCheckRouter from "./routes/healthcheck.routes.js";
 import communityRouter from "./routes/community.routes.js";
-import postRouter from "./routes/post.routes.js";
 import authRouter from "./routes/auth.routes.js";
+import postRouter from "./routes/post.routes.js";
+import commentRouter from "./routes/comment.routes.js";
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -17,6 +18,7 @@ app.use("/api/v1/healthcheck", healthCheckRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/communities", communityRouter);
 app.use("/api/v1/posts", postRouter);
+app.use("/api/v1/comments", commentRouter);
 
 //global Error handler
 app.use((err, req, res, next) => {
