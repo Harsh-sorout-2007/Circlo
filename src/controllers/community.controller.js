@@ -91,6 +91,28 @@ const getCommunity = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, community, "Community fetched successfully"));
 });
 
+const getCommunityByName = asyncHandler(async (req, res) => {
+  const { communityName } = req.params;
+
+  const community = await Community.findOne({
+    name: communityName,
+  });
+
+  if (!community) {
+    throw new ApiError(404, "Community with given name not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        community,
+        "Community fetched successfully by name ",
+      ),
+    );
+});
+
 const updateCommunity = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
   const { name, description, icon, banner, rules } = req.body;
@@ -360,6 +382,7 @@ const removeMember = asyncHandler(async (req, res) => {
 export {
   createCommunity,
   getCommunity,
+  getCommunityByName,
   updateCommunity,
   deleteCommunity,
   joinCommunity,
