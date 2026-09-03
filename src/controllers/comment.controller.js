@@ -207,13 +207,16 @@ const deleteComment = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Comment not found");
   }
 
-  const membership = await CommunityMember.findOne({
-    user: author,
-    community: post.community,
-    role: {
-      $in: [communityRoles.OWNER, communityRoles.MODERATOR],
-    },
-  });
+  let membership = null;
+  if (post.community) {
+    membership = await CommunityMember.findOne({
+      user: author,
+      community: post.community,
+      role: {
+        $in: [communityRoles.OWNER, communityRoles.MODERATOR],
+      },
+    });
+  }
 
   if (!author.equals(comment.author) && !membership) {
     throw new ApiError(403, "You do not have permission to delete the comment");
