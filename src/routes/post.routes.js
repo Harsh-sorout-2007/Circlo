@@ -7,6 +7,7 @@ import {
   getPost,
   getCommunityPosts,
   getPersonalPosts,
+  getHomeFeed,
 } from "../controllers/post.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -23,6 +24,8 @@ router
   .route("/community/:communityId")
   .post(verifyJWT, postValidator(), validate, createCommunityPost)
   .get(verifyJWT, getCommunityPosts);
+
+router.route("/feed").get(verifyJWT, getHomeFeed);
 
 router
   .route("/:postId")

@@ -50,4 +50,20 @@ const postSchema = new Schema(
   },
 );
 
+postSchema.index({
+  isRemoved: 1,
+  createdAt: -1,
+});
+
+postSchema.index({
+  isRemoved: 1,
+  score: -1,
+  createdAt: -1,
+});
+
+postSchema.index({
+  community: 1,
+  isRemoved: 1,
+  createdAt: -1,
+});
 export const Post = mongoose.model("Post", postSchema);

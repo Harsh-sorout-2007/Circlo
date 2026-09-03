@@ -273,12 +273,21 @@ const getCommunityPosts = asyncHandler(async (req, res) => {
 
   const skip = (page - 1) * limit;
 
+  const sort = req.query.sort || "new";
+
+  if (sort !== "new" && sort !== "top") {
+    throw new ApiError(400, "Invalid sort option");
+  }
+
+  const sortOption =
+    sort === "new" ? { createdAt: -1 } : { score: -1, createdAt: -1 };
+
   const posts = await Post.find({
     community: communityId,
     isRemoved: false,
   })
     .populate("author", "username displayName avatar")
-    .sort({ createdAt: -1 })
+    .sort(sortOption)
     .skip(skip)
     .limit(limit);
 
@@ -353,6 +362,83 @@ const getPersonalPosts = asyncHandler(async (req, res) => {
   );
 });
 
+const getHomeFeed = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const sort = req.query.sort || "new";
+
+  if (sort !== "new" && sort !== "top") {
+    throw new ApiError(400, "Invalid sort option");
+  }
+
+  const sortOption =
+    sort === "new" ? { createdAt: -1 } : { score: -1, createdAt: -1 };
+
+  const memberships = await CommunityMember.find({
+    user: userId,
+    bannedAt: null,
+  })
+    .select("community")
+    .lean();
+
+  const communityIds = memberships.map((membership) => membership.community);
+
+  const posts = await Post.find({
+    isRemoved: false,
+    $or: [
+      {
+        community: { $in: communityIds },
+      },
+      {
+        author: userId,
+        community: null,
+      },
+    ],
+  })
+    .populate("author", "displayName username avatar")
+    .populate("community", "name icon")
+    .sort(sortOption)
+    .skip(skip)
+    .limit(limit);
+
+  const totalPosts = await Post.countDocuments({
+    isRemoved: false,
+    $or: [
+      {
+        community: { $in: communityIds },
+      },
+      {
+        author: userId,
+        community: null,
+      },
+    ],
+  });
+
+  const totalPages = Math.ceil(totalPosts / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        posts,
+        pagination: {
+          page,
+          limit,
+          totalPosts,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Home feed fetched successfully",
+    ),
+  );
+});
+
 export {
   createPersonalPost,
   createCommunityPost,
@@ -361,4 +447,5 @@ export {
   getPost,
   getCommunityPosts,
   getPersonalPosts,
+  getHomeFeed,
 };
