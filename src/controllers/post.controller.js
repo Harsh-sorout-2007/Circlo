@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -6,6 +7,9 @@ import { Community } from "../models/community.model.js";
 import { CommunityMember } from "../models/communityMember.model.js";
 import { validatePostContent } from "../utils/post.validation.js";
 import { communityRoles } from "../utils/roles.js";
+import { Comment } from "../models/comment.model.js";
+import { Vote } from "../models/vote.model.js";
+import { SavedPost } from "../models/savedPosts.model.js";
 
 const createPersonalPost = asyncHandler(async (req, res) => {
   const author = req.user._id;
@@ -170,19 +174,70 @@ const deletePost = asyncHandler(async (req, res) => {
     }
   }
 
-  await Post.findByIdAndUpdate(
-    postId,
-    {
-      $set: {
-        isRemoved: true,
-      },
-    },
-    { new: true },
-  );
+  const session = await mongoose.startSession();
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Post deleted successfully"));
+  try {
+    session.startTransaction();
+
+    const comments = await Comment.find({
+      post: postId,
+    })
+      .select("_id")
+      .session(session);
+
+    const commentIds = comments.map((comment) => comment._id);
+
+    await Comment.updateMany(
+      { post: postId },
+      {
+        $set: {
+          isRemoved: true,
+        },
+      },
+      { session },
+    );
+
+    await Vote.deleteMany({
+      $or: [
+        {
+          target: postId,
+          targetType: "Post",
+        },
+        {
+          target: { $in: commentIds },
+          targetType: "Comment",
+        },
+      ],
+    }).session(session);
+
+    await SavedPost.deleteMany({
+      post: postId,
+    }).session(session);
+
+    await Post.findByIdAndUpdate(
+      postId,
+      {
+        $set: {
+          isRemoved: true,
+        },
+      },
+      {
+        new: true,
+        session,
+      },
+    );
+
+    await session.commitTransaction();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Post deleted successfully"));
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 });
 
 const getPost = asyncHandler(async (req, res) => {
