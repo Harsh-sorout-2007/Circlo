@@ -8,10 +8,12 @@ import {
   getCommunityPosts,
   getPersonalPosts,
   getHomeFeed,
+  searchPosts,
 } from "../controllers/post.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import { postValidator } from "../validators/post.validator.js";
+import { searchValidator } from "../validators/search.validator.js";
 
 const router = Router();
 
@@ -26,6 +28,10 @@ router
   .get(verifyJWT, getCommunityPosts);
 
 router.route("/feed").get(verifyJWT, getHomeFeed);
+
+router
+  .route("/search")
+  .get(verifyJWT, searchValidator(), validate, searchPosts);
 
 router
   .route("/:postId")
