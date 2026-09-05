@@ -12,13 +12,18 @@ import {
   userLoginValidator,
 } from "../validators/index.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { authRateLimiter } from "../middlewares/rateLimit.middleware.js";
 
 const router = Router();
 
 //unsecure routes
-router.route("/register").post(userRegisterValidator(), validate, registerUser);
-router.route("/login").post(userLoginValidator(), validate, loginUser);
-router.route("/refresh-token").post(refreshAccessToken);
+router
+  .route("/register")
+  .post(authRateLimiter, userRegisterValidator(), validate, registerUser);
+router
+  .route("/login")
+  .post(authRateLimiter, userLoginValidator(), validate, loginUser);
+router.route("/refresh-token").post(authRateLimiter, refreshAccessToken);
 
 //secure routes
 router.route("/logout").post(verifyJWT, logoutUser);

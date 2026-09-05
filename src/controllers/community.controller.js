@@ -232,7 +232,7 @@ const updateCommunity = asyncHandler(async (req, res) => {
 
 const joinCommunity = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
-  const user = req.user._id;
+  const userId = req.user._id;
 
   const community = await Community.findById(communityId);
 
@@ -241,37 +241,57 @@ const joinCommunity = asyncHandler(async (req, res) => {
   }
 
   const existingMember = await CommunityMember.findOne({
-    user: user,
+    user: userId,
     community: communityId,
   });
 
   if (existingMember) {
+    if (existingMember.bannedAt) {
+      throw new ApiError(403, "You are banned from this community");
+    }
+
     throw new ApiError(409, "You are already a member of this community");
   }
 
-  const member = await CommunityMember.create({
-    user: user,
-    community: communityId,
-    role: communityRoles.MEMBER,
-    joinedAt: new Date(),
-  });
+  const session = await mongoose.startSession();
 
-  if (!member) {
-    throw new ApiError(500, "Something went wrong while joining community");
+  try {
+    await session.withTransaction(async () => {
+      await CommunityMember.create(
+        [
+          {
+            user: userId,
+            community: communityId,
+            role: communityRoles.MEMBER,
+            joinedAt: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      await Community.findByIdAndUpdate(
+        communityId,
+        {
+          $inc: { memberCount: 1 },
+        },
+        {
+          session,
+          new: true,
+        },
+      );
+    });
+  } finally {
+    await session.endSession();
   }
-
-  await Community.findByIdAndUpdate(communityId, {
-    $inc: { memberCount: 1 },
-  });
 
   return res
     .status(200)
-    .json(new ApiResponse(200, member, "Community joined successfully"));
+    .json(new ApiResponse(200, null, "Joined community successfully"));
 });
 
 const leaveCommunity = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
-  const user = req.user._id;
+  const userId = req.user._id;
 
   const community = await Community.findById(communityId);
 
@@ -279,44 +299,42 @@ const leaveCommunity = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Community not found");
   }
 
-  const isMember = await CommunityMember.findOne({
+  const member = await CommunityMember.findOne({
+    user: userId,
     community: communityId,
-    user: user,
   });
 
-  if (!isMember) {
-    throw new ApiError(
-      404,
-      "You are not member of community or community doesnt exist",
-    );
+  if (!member) {
+    throw new ApiError(404, "You are not a member of this community");
   }
 
-  if (isMember.role === communityRoles.OWNER) {
+  if (member.role === communityRoles.OWNER) {
     throw new ApiError(400, "Community owner cannot leave the community");
   }
 
-  await CommunityMember.deleteOne({
-    user: user,
-    community: communityId,
-  });
+  const session = await mongoose.startSession();
 
-  const updatedCommunity = await Community.findByIdAndUpdate(
-    communityId,
-    {
-      $inc: { memberCount: -1 },
-    },
-    { new: true },
-  );
+  try {
+    await session.withTransaction(async () => {
+      await CommunityMember.findByIdAndDelete(member._id).session(session);
+
+      await Community.findByIdAndUpdate(
+        communityId,
+        {
+          $inc: { memberCount: -1 },
+        },
+        {
+          session,
+        },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        updatedCommunity,
-        "Member left the community successfully",
-      ),
-    );
+    .json(new ApiResponse(200, null, "Left community successfully"));
 });
 
 const getCommunityMembers = asyncHandler(async (req, res) => {
@@ -413,49 +431,60 @@ const removeMember = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Community not found");
   }
 
-  const requestedUser = await CommunityMember.findOne({
+  const requester = await CommunityMember.findOne({
     community: communityId,
     user: requestingUser,
     bannedAt: null,
   });
 
-  if (!requestedUser) {
-    throw new ApiError(403, "You are not a part of this community");
+  if (
+    !requester ||
+    ![communityRoles.OWNER, communityRoles.MODERATOR].includes(requester.role)
+  ) {
+    throw new ApiError(403, "Only the owner or moderator can remove members");
   }
 
-  const member = await CommunityMember.findOne({
+  const targetMember = await CommunityMember.findOne({
     community: communityId,
     user: userId,
   });
 
-  if (!member) {
-    throw new ApiError(403, "Member is not part of community");
+  if (!targetMember) {
+    throw new ApiError(404, "Member not found");
   }
 
-  if (requestedUser.role === communityRoles.MEMBER) {
-    throw new ApiError(403, "Members do not have permission to remove users");
-  }
-
-  if (
-    requestedUser.role === communityRoles.MODERATOR &&
-    member.role !== communityRoles.MEMBER
-  ) {
-    throw new ApiError(403, "Moderators can only remove members");
-  }
-
-  if (member.role === communityRoles.OWNER) {
+  if (targetMember.role === communityRoles.OWNER) {
     throw new ApiError(400, "Community owner cannot be removed");
   }
 
-  await CommunityMember.findByIdAndDelete(member._id);
+  if (
+    requester.role === communityRoles.MODERATOR &&
+    targetMember.role === communityRoles.MODERATOR
+  ) {
+    throw new ApiError(403, "Moderators cannot remove other moderators");
+  }
 
-  await Community.findByIdAndUpdate(communityId, {
-    $inc: { memberCount: -1 },
-  });
+  const session = await mongoose.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      await CommunityMember.findByIdAndDelete(targetMember._id, { session });
+
+      await Community.findByIdAndUpdate(
+        communityId,
+        {
+          $inc: { memberCount: -1 },
+        },
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "User removed from community successfully"));
+    .json(new ApiResponse(200, null, "Member removed successfully"));
 });
 
 const banMember = asyncHandler(async (req, res) => {

@@ -9,6 +9,8 @@ import savedPostRouter from "./routes/savedPost.routes.js";
 import userRouter from "./routes/user.routes.js";
 import reportRouter from "./routes/report.routes.js";
 import cookieParser from "cookie-parser";
+import cors from "cors";
+import { apiRateLimiter } from "./middlewares/rateLimit.middleware.js";
 
 const app = express();
 
@@ -18,6 +20,14 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+  }),
+);
+
+app.use("/api/v1", apiRateLimiter);
 app.use("/api/v1/healthcheck", healthCheckRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/communities", communityRouter);

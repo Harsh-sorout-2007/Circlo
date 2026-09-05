@@ -46,13 +46,15 @@ const communityValidator = () => {
       .trim()
       .notEmpty()
       .withMessage("Name is required")
-      .isLength({ min: 4 })
+      .isLength({ min: 4, max: 50 })
       .withMessage("Minimum length of name must be 4"),
 
     body("description")
+      .trim()
       .notEmpty()
       .withMessage("Description is required")
-      .trim(),
+      .isLength({ max: 500 })
+      .withMessage("Description cannot exceed 500 characters"),
 
     body("icon").optional().trim(),
 

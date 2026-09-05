@@ -8,66 +8,8 @@ import { communityRoles } from "../utils/roles.js";
 
 const createComment = asyncHandler(async (req, res) => {
   const { postId } = req.params;
+  const { content, parentComment } = req.body;
   const author = req.user._id;
-  const { content, parentCommentId } = req.body;
-
-  if (parentCommentId !== null && parentCommentId !== undefined) {
-    const post = await Post.findOne({
-      _id: postId,
-      isRemoved: false,
-    });
-
-    if (!post) {
-      throw new ApiError(404, "Post not found");
-    }
-
-    if (post.community) {
-      const member = await CommunityMember.findOne({
-        community: post.community,
-        user: author,
-        bannedAt: null,
-      });
-
-      if (!member) {
-        throw new ApiError(
-          403,
-          "You are banned or not a member of this community",
-        );
-      }
-    }
-
-    const comment = await Comment.findOne({
-      _id: parentCommentId,
-      post: postId,
-      isRemoved: false,
-    });
-
-    if (!comment) {
-      throw new ApiError(404, "Parent comment not found");
-    }
-
-    const reply = await Comment.create({
-      author,
-      post: postId,
-      content,
-      parentComment: parentCommentId,
-    });
-
-    if (!reply) {
-      throw new ApiError(
-        500,
-        "Something went wrong while replying to the comment",
-      );
-    }
-
-    await Post.findByIdAndUpdate(postId, {
-      $inc: { commentCount: 1 },
-    });
-
-    return res
-      .status(201)
-      .json(new ApiResponse(201, reply, "Reply comment created successfully"));
-  }
 
   const post = await Post.findOne({
     _id: postId,
@@ -93,19 +35,49 @@ const createComment = asyncHandler(async (req, res) => {
     }
   }
 
-  const comment = await Comment.create({
-    author,
-    post: postId,
-    content,
-  });
+  if (parentComment) {
+    const parent = await Comment.findOne({
+      _id: parentComment,
+      post: postId,
+      isRemoved: false,
+    });
 
-  if (!comment) {
-    throw new ApiError(500, "Something went wrong while creating comment");
+    if (!parent) {
+      throw new ApiError(404, "Parent comment not found");
+    }
   }
 
-  await Post.findByIdAndUpdate(postId, {
-    $inc: { commentCount: 1 },
-  });
+  const session = await mongoose.startSession();
+
+  let comment;
+
+  try {
+    await session.withTransaction(async () => {
+      const createdComments = await Comment.create(
+        [
+          {
+            author,
+            post: postId,
+            content,
+            parentComment: parentComment || null,
+          },
+        ],
+        { session },
+      );
+
+      comment = createdComments[0];
+
+      await Post.findByIdAndUpdate(
+        postId,
+        {
+          $inc: { commentCount: 1 },
+        },
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(201)
@@ -216,7 +188,7 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
   const { postId, commentId } = req.params;
-  const author = req.user._id;
+  const userId = req.user._id;
 
   const post = await Post.findOne({
     _id: postId,
@@ -237,61 +209,55 @@ const deleteComment = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Comment not found");
   }
 
-  let membership = null;
-  if (post.community) {
-    membership = await CommunityMember.findOne({
-      user: author,
+  let canDelete = comment.author.toString() === userId.toString();
+
+  if (!canDelete && post.community) {
+    const member = await CommunityMember.findOne({
       community: post.community,
-      role: {
-        $in: [communityRoles.OWNER, communityRoles.MODERATOR],
-      },
-    });
-  }
-
-  if (!author.equals(comment.author) && !membership) {
-    throw new ApiError(403, "You do not have permission to delete the comment");
-  }
-
-  const deleteReplies = async (parentCommentId) => {
-    const replies = await Comment.find({
-      parentComment: parentCommentId,
-      isRemoved: false,
+      user: userId,
+      bannedAt: null,
     });
 
-    let deleteCount = 0;
-    for (const reply of replies) {
-      const childCount = await deleteReplies(reply._id);
-      deleteCount += childCount;
-      await Comment.findByIdAndUpdate(reply._id, {
-        $set: {
-          isRemoved: true,
-        },
-      });
-      deleteCount++;
+    if (
+      member &&
+      [communityRoles.OWNER, communityRoles.MODERATOR].includes(member.role)
+    ) {
+      canDelete = true;
     }
-    return deleteCount;
-  };
+  }
 
-  const deleteCount = await deleteReplies(commentId);
+  if (!canDelete) {
+    throw new ApiError(403, "You are not authorized to delete this comment");
+  }
 
-  await Comment.findByIdAndUpdate(
-    commentId,
-    {
-      $set: {
-        isRemoved: true,
-      },
-    },
-    {
-      new: true,
-    },
-  );
+  const session = await mongoose.startSession();
 
-  await Post.findByIdAndUpdate(postId, {
-    $inc: { commentCount: -(deleteCount + 1) },
-  });
+  try {
+    await session.withTransaction(async () => {
+      await Comment.findByIdAndUpdate(
+        commentId,
+        {
+          $set: {
+            isRemoved: true,
+          },
+        },
+        { session },
+      );
+
+      await Post.findByIdAndUpdate(
+        postId,
+        {
+          $inc: { commentCount: -1 },
+        },
+        { session },
+      );
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "Comment deleted successfully"));
+    .json(new ApiResponse(200, null, "Comment deleted successfully"));
 });
 export { createComment, getComments, updateComment, deleteComment };
