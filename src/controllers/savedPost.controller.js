@@ -17,15 +17,6 @@ const savePost = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Post not found");
   }
 
-  const existingSavedPost = await SavedPost.findOne({
-    user: userId,
-    post: postId,
-  });
-
-  if (existingSavedPost) {
-    throw new ApiError(409, "Post is already saved");
-  }
-
   const savedPost = await SavedPost.create({
     user: userId,
     post: postId,

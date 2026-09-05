@@ -41,16 +41,6 @@ const createReport = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid targetType");
   }
 
-  const existingReport = await Report.findOne({
-    reporter,
-    target,
-    targetType,
-  });
-
-  if (existingReport) {
-    throw new ApiError(409, "You have already reported");
-  }
-
   const report = await Report.create({
     reporter,
     target,

@@ -28,7 +28,7 @@ The project focuses particularly on **backend architecture, business logic, data
 | Database                | MongoDB + Mongoose            |
 | Authentication          | JWT (Access + Refresh Tokens) |
 | Password Hashing        | bcrypt                        |
-| Media Storage           | Cloudinary or equivalent      |
+| Media Storage           | Not required for V1           |
 | API                     | REST                          |
 | Real-time Communication | Not required for V1           |
 
@@ -53,7 +53,6 @@ These technologies are defined as the target stack in the project requirements.
 - Email
 - Avatar
 - Bio
-- Karma
 - Post and comment counts
 - Profile posts and comments
 
@@ -292,7 +291,7 @@ The project will be developed incrementally:
 4. **Communities**
 5. **Posts**
 6. **Comments**
-7. **Voting & Karma**
+7. **Voting**
 8. **Saved Posts**
 9. **Search**
 10. **Moderation**

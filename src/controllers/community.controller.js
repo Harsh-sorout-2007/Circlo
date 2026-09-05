@@ -14,11 +14,6 @@ import { Report } from "../models/report.model.js";
 const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
   const owner = req.user._id;
-  const existedCommunity = await Community.findOne({ name });
-
-  if (existedCommunity) {
-    throw new ApiError(409, "Community with same name exists");
-  }
 
   const community = await Community.create({
     name,

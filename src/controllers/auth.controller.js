@@ -32,14 +32,6 @@ const generateAccessAndRefreshToken = async (userId) => {
 const registerUser = asyncHandler(async (req, res) => {
   const { email, username, password, displayName } = req.body;
 
-  const existedUser = await User.findOne({
-    $or: [{ email }, { username }],
-  });
-
-  if (existedUser) {
-    throw new ApiError(409, "User already exists with same email or username");
-  }
-
   const user = await User.create({
     email,
     username,

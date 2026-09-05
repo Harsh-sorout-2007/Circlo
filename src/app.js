@@ -40,6 +40,16 @@ app.use("/api/v1/reports", reportRouter);
 
 //global Error handler
 app.use((err, req, res, next) => {
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue || {})[0] || "field";
+    return res.status(409).json({
+      success: false,
+      message: `Duplicate value for ${field}. This resource already exists.`,
+      errors: [],
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
+  }
+
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,

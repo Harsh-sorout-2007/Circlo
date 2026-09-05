@@ -10,6 +10,7 @@ import { communityRoles } from "../utils/roles.js";
 import { Comment } from "../models/comment.model.js";
 import { Vote } from "../models/vote.model.js";
 import { SavedPost } from "../models/savedPosts.model.js";
+import { Report } from "../models/report.model.js";
 
 const createPersonalPost = asyncHandler(async (req, res) => {
   const author = req.user._id;
@@ -213,6 +214,19 @@ const deletePost = asyncHandler(async (req, res) => {
 
     await SavedPost.deleteMany({
       post: postId,
+    }).session(session);
+
+    await Report.deleteMany({
+      $or: [
+        {
+          target: postId,
+          targetType: "Post",
+        },
+        {
+          target: { $in: commentIds },
+          targetType: "Comment",
+        },
+      ],
     }).session(session);
 
     await Post.findByIdAndUpdate(
