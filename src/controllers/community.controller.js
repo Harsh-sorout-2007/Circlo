@@ -1,10 +1,15 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { Community } from "../models/community.model.js";
 import { CommunityMember } from "../models/communityMember.model.js";
 import { communityRoles } from "../utils/roles.js";
-import { User } from "../models/user.model.js";
+import { Post } from "../models/post.model.js";
+import { Comment } from "../models/comment.model.js";
+import { Vote } from "../models/vote.model.js";
+import { SavedPost } from "../models/savedPosts.model.js";
+import { Report } from "../models/report.model.js";
 
 const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
@@ -55,24 +60,96 @@ const deleteCommunity = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
   const userId = req.user._id;
 
-  const community = await Community.findOne({
-    _id: communityId,
-    owner: userId,
-  });
+  const community = await Community.findById(communityId);
 
   if (!community) {
-    throw new ApiError(404, "Community not found or you are not the owner");
+    throw new ApiError(404, "Community not found");
   }
 
-  await CommunityMember.deleteMany({
-    community: communityId,
-  });
+  if (community.owner.toString() !== userId.toString()) {
+    throw new ApiError(
+      403,
+      "Only the community owner can delete the community",
+    );
+  }
 
-  await Community.findByIdAndDelete(communityId);
+  const session = await mongoose.startSession();
+
+  try {
+    await session.withTransaction(async () => {
+      const posts = await Post.find({
+        community: communityId,
+      })
+        .select("_id")
+        .session(session);
+
+      const postIds = posts.map((post) => post._id);
+
+      const comments = await Comment.find({
+        post: { $in: postIds },
+      })
+        .select("_id")
+        .session(session);
+
+      const commentIds = comments.map((comment) => comment._id);
+
+      await Vote.deleteMany({
+        $or: [
+          {
+            targetType: "Post",
+            target: { $in: postIds },
+          },
+          {
+            targetType: "Comment",
+            target: { $in: commentIds },
+          },
+        ],
+      }).session(session);
+
+      await SavedPost.deleteMany({
+        post: { $in: postIds },
+      }).session(session);
+
+      await Report.deleteMany({
+        $or: [
+          {
+            targetType: "Post",
+            target: { $in: postIds },
+          },
+          {
+            targetType: "Comment",
+            target: { $in: commentIds },
+          },
+        ],
+      }).session(session);
+
+      await Comment.deleteMany({
+        post: { $in: postIds },
+      }).session(session);
+
+      await Post.deleteMany({
+        community: communityId,
+      }).session(session);
+
+      await CommunityMember.deleteMany({
+        community: communityId,
+      }).session(session);
+
+      await Community.findByIdAndDelete(communityId).session(session);
+    });
+  } finally {
+    await session.endSession();
+  }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, "Community deleted successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "Community and all associated data deleted successfully",
+      ),
+    );
 });
 
 const getCommunity = asyncHandler(async (req, res) => {
@@ -339,6 +416,7 @@ const removeMember = asyncHandler(async (req, res) => {
   const requestedUser = await CommunityMember.findOne({
     community: communityId,
     user: requestingUser,
+    bannedAt: null,
   });
 
   if (!requestedUser) {

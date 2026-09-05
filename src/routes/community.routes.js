@@ -35,7 +35,9 @@ router.route("/:communityId/join").post(verifyJWT, joinCommunity);
 router.route("/:communityId/leave").post(verifyJWT, leaveCommunity);
 router.route("/:communityId/members").get(verifyJWT, getCommunityMembers);
 router.route("/:communityId/members/:userId/ban").patch(verifyJWT, banMember);
-router.route("/:communityId/members/:userId/unban").patch(verifyJWT, unbanMember);
+router
+  .route("/:communityId/members/:userId/unban")
+  .patch(verifyJWT, unbanMember);
 router.route("/:communityId/:userId/role").patch(verifyJWT, updateMemberRole);
 router.route("/:communityId/:userId").delete(verifyJWT, removeMember);
 

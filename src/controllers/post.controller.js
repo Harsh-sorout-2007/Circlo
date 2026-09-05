@@ -51,10 +51,11 @@ const createCommunityPost = asyncHandler(async (req, res) => {
   const validAuthor = await CommunityMember.findOne({
     community: communityId,
     user: author,
+    bannedAt: null,
   });
 
   if (!validAuthor) {
-    throw new ApiError(403, "Author is not part of community");
+    throw new ApiError(403, "You are banned from this community");
   }
 
   const post = await Post.create({

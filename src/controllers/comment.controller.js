@@ -21,6 +21,21 @@ const createComment = asyncHandler(async (req, res) => {
       throw new ApiError(404, "Post not found");
     }
 
+    if (post.community) {
+      const member = await CommunityMember.findOne({
+        community: post.community,
+        user: author,
+        bannedAt: null,
+      });
+
+      if (!member) {
+        throw new ApiError(
+          403,
+          "You are banned or not a member of this community",
+        );
+      }
+    }
+
     const comment = await Comment.findOne({
       _id: parentCommentId,
       post: postId,
@@ -61,6 +76,21 @@ const createComment = asyncHandler(async (req, res) => {
 
   if (!post) {
     throw new ApiError(404, "Post not found");
+  }
+
+  if (post.community) {
+    const member = await CommunityMember.findOne({
+      community: post.community,
+      user: author,
+      bannedAt: null,
+    });
+
+    if (!member) {
+      throw new ApiError(
+        403,
+        "You are banned or not a member of this community",
+      );
+    }
   }
 
   const comment = await Comment.create({

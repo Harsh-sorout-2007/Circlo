@@ -219,6 +219,13 @@ const updateReport = asyncHandler(async (req, res) => {
     communityId = post.community;
   }
 
+  if (!communityId) {
+    throw new ApiError(
+      403,
+      "Reports for personal posts cannot be reviewed by community moderators",
+    );
+  }
+
   const member = await CommunityMember.findOne({
     user: userId,
     community: communityId,
