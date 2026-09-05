@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { Community } from "../models/community.model.js";
 import { CommunityMember } from "../models/communityMember.model.js";
 import { communityRoles } from "../utils/roles.js";
+import { User } from "../models/user.model.js";
 
 const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
@@ -379,6 +380,118 @@ const removeMember = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User removed from community successfully"));
 });
 
+const banMember = asyncHandler(async (req, res) => {
+  const { communityId, userId } = req.params;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const member = await CommunityMember.findOne({
+    user: userId,
+    community: communityId,
+  });
+
+  if (!member) {
+    throw new ApiError(404, "Member is not part of community");
+  }
+
+  const authMember = await CommunityMember.findOne({
+    user: req.user._id,
+    community: communityId,
+    role: "OWNER",
+  });
+
+  if (!authMember) {
+    throw new ApiError(403, "You do not have permission to ban this member");
+  }
+
+  if (member.role === "OWNER") {
+    throw new ApiError(400, "Owner cannot be banned");
+  }
+
+  if (member.bannedAt) {
+    throw new ApiError(400, "Member is already banned");
+  }
+
+  const updateBan = await CommunityMember.findByIdAndUpdate(
+    member._id,
+    {
+      $set: {
+        bannedAt: new Date(),
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!updateBan) {
+    throw new ApiError(500, "Something went wrong while banning the user");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updateBan, "User banned successfully"));
+});
+
+const unbanMember = asyncHandler(async (req, res) => {
+  const { communityId, userId } = req.params;
+
+  const community = await Community.findById(communityId);
+
+  if (!community) {
+    throw new ApiError(404, "Community not found");
+  }
+
+  const member = await CommunityMember.findOne({
+    user: userId,
+    community: communityId,
+  });
+
+  if (!member) {
+    throw new ApiError(404, "Member is not part of community");
+  }
+
+  const authMember = await CommunityMember.findOne({
+    user: req.user._id,
+    community: communityId,
+    role: "OWNER",
+  });
+
+  if (!authMember) {
+    throw new ApiError(403, "You do not have permission to unban this member");
+  }
+
+  if (!member.bannedAt) {
+    throw new ApiError(400, "Member is not banned");
+  }
+
+  const updatedMember = await CommunityMember.findByIdAndUpdate(
+    member._id,
+    {
+      $set: {
+        bannedAt: null,
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    },
+  );
+
+  if (!updatedMember) {
+    throw new ApiError(500, "Something went wrong while unbanning the user");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updatedMember, "User unbanned successfully"));
+});
+
 export {
   createCommunity,
   getCommunity,
@@ -390,4 +503,6 @@ export {
   getCommunityMembers,
   updateMemberRole,
   removeMember,
+  banMember,
+  unbanMember,
 };
