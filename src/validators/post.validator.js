@@ -13,7 +13,7 @@ export const postValidator = () => {
       .trim()
       .notEmpty()
       .withMessage("Post type is required")
-      .isIn(["TEXT", "IMAGE", "LINK"])
+      .isIn(["TEXT", "IMAGE", "LINK", "VIDEO"])
       .withMessage("Invalid post type"),
 
     body("content")

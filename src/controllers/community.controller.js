@@ -10,6 +10,7 @@ import { Comment } from "../models/comment.model.js";
 import { Vote } from "../models/vote.model.js";
 import { SavedPost } from "../models/savedPosts.model.js";
 import { Report } from "../models/report.model.js";
+import { cloudinary } from "../config/cloudinary.js";
 
 const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
@@ -70,15 +71,24 @@ const deleteCommunity = asyncHandler(async (req, res) => {
 
   const session = await mongoose.startSession();
 
+  let cloudinaryMedia = [];
+
   try {
     await session.withTransaction(async () => {
       const posts = await Post.find({
         community: communityId,
       })
-        .select("_id")
+        .select("_id type mediaPublicId")
         .session(session);
 
       const postIds = posts.map((post) => post._id);
+
+      cloudinaryMedia = posts
+        .filter((post) => post.mediaPublicId)
+        .map((post) => ({
+          publicId: post.mediaPublicId,
+          resourceType: post.type === "VIDEO" ? "video" : "image",
+        }));
 
       const comments = await Comment.find({
         post: { $in: postIds },
@@ -134,6 +144,12 @@ const deleteCommunity = asyncHandler(async (req, res) => {
     });
   } finally {
     await session.endSession();
+  }
+
+  for (const media of cloudinaryMedia) {
+    await cloudinary.uploader.destroy(media.publicId, {
+      resource_type: media.resourceType,
+    });
   }
 
   return res
@@ -199,7 +215,6 @@ const updateCommunity = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Community not found or you are not the owner");
   }
 
-  //handle partial updates
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (description !== undefined) updateData.description = description;

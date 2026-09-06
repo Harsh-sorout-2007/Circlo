@@ -1,7 +1,7 @@
 import { ApiError } from "./ApiError.js";
 
 export const validatePostContent = (type, content, mediaURL, linkURL) => {
-  if (!["TEXT", "IMAGE", "LINK"].includes(type)) {
+  if (!["TEXT", "IMAGE", "VIDEO", "LINK"].includes(type)) {
     throw new ApiError(400, "Invalid post type");
   }
 
@@ -11,6 +11,10 @@ export const validatePostContent = (type, content, mediaURL, linkURL) => {
 
   if (type === "IMAGE" && !mediaURL) {
     throw new ApiError(400, "Media URL is required for image posts");
+  }
+
+  if (type === "VIDEO" && !mediaURL) {
+    throw new ApiError(400, "Media URL is required for video posts");
   }
 
   if (type === "LINK" && !linkURL) {

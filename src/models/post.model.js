@@ -23,10 +23,13 @@ const postSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["TEXT", "IMAGE", "LINK"],
+      enum: ["TEXT", "IMAGE", "LINK", "VIDEO"],
       required: true,
     },
     mediaURL: {
+      type: String,
+    },
+    mediaPublicId: {
       type: String,
     },
     linkURL: {

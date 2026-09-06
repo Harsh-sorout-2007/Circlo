@@ -18,19 +18,27 @@ import { postValidator } from "../validators/post.validator.js";
 import { searchValidator } from "../validators/search.validator.js";
 import { validateObjectId } from "../middlewares/validateObect.middleware.js";
 import { paginationValidator } from "../validators/pagination.validator.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
 router
   .route("/personal")
   .get(verifyJWT, paginationValidator(), validate, getPersonalPosts)
-  .post(verifyJWT, postValidator(), validate, createPersonalPost);
+  .post(
+    verifyJWT,
+    upload.single("media"),
+    postValidator(),
+    validate,
+    createPersonalPost,
+  );
 
 router
   .route("/community/:communityId")
   .post(
     verifyJWT,
     validateObjectId("communityId"),
+    upload.single("media"),
     postValidator(),
     validate,
     createCommunityPost,
@@ -60,7 +68,12 @@ router
 router
   .route("/:postId")
   .get(verifyJWT, validateObjectId("postId"), getPost)
-  .patch(verifyJWT, validateObjectId("postId"), updatePost)
+  .patch(
+    verifyJWT,
+    validateObjectId("postId"),
+    upload.single("media"),
+    updatePost,
+  )
   .delete(verifyJWT, validateObjectId("postId"), deletePost);
 
 export default router;
