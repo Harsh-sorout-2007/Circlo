@@ -418,6 +418,27 @@ const getPost = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, post, "Post fetched successfully"));
 });
 
+const getPostsWithUserVote = async (posts, userId) => {
+  const postIds = posts.map((post) => post._id);
+
+  const votes = await Vote.find({
+    user: userId,
+    targetType: "Post",
+    target: { $in: postIds },
+  })
+    .select("target value")
+    .lean();
+
+  const voteMap = new Map(
+    votes.map((vote) => [vote.target.toString(), vote.value]),
+  );
+
+  return posts.map((post) => ({
+    ...post.toObject(),
+    userVote: voteMap.get(post._id.toString()) || 0,
+  }));
+};
+
 const getCommunityPosts = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
 
@@ -439,16 +460,24 @@ const getCommunityPosts = asyncHandler(async (req, res) => {
   }
 
   const sortOption =
-    sort === "new" ? { createdAt: -1 } : { score: -1, createdAt: -1 };
+    sort === "new"
+      ? { createdAt: -1 }
+      : { score: -1, createdAt: -1 };
 
   const posts = await Post.find({
     community: communityId,
     isRemoved: false,
   })
     .populate("author", "username displayName avatar")
+    .populate("community", "name icon")
     .sort(sortOption)
     .skip(skip)
     .limit(limit);
+
+  const postsWithUserVote = await getPostsWithUserVote(
+    posts,
+    req.user._id,
+  );
 
   const totalPosts = await Post.countDocuments({
     community: communityId,
@@ -461,7 +490,7 @@ const getCommunityPosts = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        posts,
+        posts: postsWithUserVote,
         pagination: {
           page,
           limit,
@@ -490,9 +519,15 @@ const getPersonalPosts = asyncHandler(async (req, res) => {
     isRemoved: false,
   })
     .populate("author", "username displayName avatar")
+    .populate("community", "name icon")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
+
+  const postsWithUserVote = await getPostsWithUserVote(
+    posts,
+    userId,
+  );
 
   const totalPosts = await Post.countDocuments({
     author: userId,
@@ -506,7 +541,7 @@ const getPersonalPosts = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        posts,
+        posts: postsWithUserVote,
         pagination: {
           page,
           limit,
@@ -526,6 +561,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
 
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
+
   const skip = (page - 1) * limit;
 
   const sort = req.query.sort || "new";
@@ -535,7 +571,9 @@ const getHomeFeed = asyncHandler(async (req, res) => {
   }
 
   const sortOption =
-    sort === "new" ? { createdAt: -1 } : { score: -1, createdAt: -1 };
+    sort === "new"
+      ? { createdAt: -1 }
+      : { score: -1, createdAt: -1 };
 
   const memberships = await CommunityMember.find({
     user: userId,
@@ -544,7 +582,9 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     .select("community")
     .lean();
 
-  const communityIds = memberships.map((membership) => membership.community);
+  const communityIds = memberships.map(
+    (membership) => membership.community,
+  );
 
   const posts = await Post.find({
     isRemoved: false,
@@ -563,6 +603,11 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     .sort(sortOption)
     .skip(skip)
     .limit(limit);
+
+  const postsWithUserVote = await getPostsWithUserVote(
+    posts,
+    userId,
+  );
 
   const totalPosts = await Post.countDocuments({
     isRemoved: false,
@@ -583,7 +628,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        posts,
+        posts: postsWithUserVote,
         pagination: {
           page,
           limit,
