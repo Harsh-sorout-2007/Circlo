@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './Register.css';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { checkAuth } = useAuth();
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState('');
   const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
@@ -35,16 +37,28 @@ const Login = () => {
         password: formData.password,
       });
 
-      if (response.data.success || response.status === 200) {
-        // Backend handles tokens via HTTP-only cookies, no need to store in localStorage
+      if (response.status === 200) {
+        // Backend handles tokens via HTTP-only cookies
+        // We must tell the frontend AuthContext to refresh before navigating
+        await checkAuth();
         navigate('/');
       }
     } catch (error) {
       if (error.response) {
         const { status, data } = error.response;
-        setServerError(data.message || 'Invalid email or password.');
+        
+        if (status === 422 && Array.isArray(data.errors)) {
+          // Validation errors from express-validator
+          setServerError(data.message || 'Please fix the errors below.');
+        } else if (status === 401 || status === 400 || status === 404) {
+          // Invalid credentials or missing fields handled by auth.controller.js
+          setServerError(data.message || 'Invalid email or password.');
+        } else {
+          // Generic server error
+          setServerError(data.message || 'An error occurred during login. Please try again.');
+        }
       } else if (error.request) {
-        setServerError('Cannot reach the server. Please check your internet connection.');
+        setServerError('Cannot reach the Circlo backend. Make sure the backend server is running.');
       } else {
         setServerError('An unexpected error occurred.');
       }
