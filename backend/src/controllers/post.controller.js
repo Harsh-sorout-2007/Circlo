@@ -418,24 +418,38 @@ const getPost = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, post, "Post fetched successfully"));
 });
 
-const getPostsWithUserVote = async (posts, userId) => {
+const getPostsWithUserState = async (posts, userId) => {
   const postIds = posts.map((post) => post._id);
 
-  const votes = await Vote.find({
-    user: userId,
-    targetType: "Post",
-    target: { $in: postIds },
-  })
-    .select("target value")
-    .lean();
+  const [votes, savedPosts] = await Promise.all([
+    Vote.find({
+      user: userId,
+      targetType: "Post",
+      target: { $in: postIds },
+    })
+      .select("target value")
+      .lean(),
+
+    SavedPost.find({
+      user: userId,
+      post: { $in: postIds },
+    })
+      .select("post")
+      .lean(),
+  ]);
 
   const voteMap = new Map(
     votes.map((vote) => [vote.target.toString(), vote.value]),
   );
 
+  const savedPostIds = new Set(
+    savedPosts.map((savedPost) => savedPost.post.toString()),
+  );
+
   return posts.map((post) => ({
     ...post.toObject(),
     userVote: voteMap.get(post._id.toString()) || 0,
+    isSaved: savedPostIds.has(post._id.toString()),
   }));
 };
 
@@ -474,7 +488,7 @@ const getCommunityPosts = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  const postsWithUserVote = await getPostsWithUserVote(
+  const postsWithUserState = await getPostsWithUserState(
     posts,
     req.user._id,
   );
@@ -490,7 +504,7 @@ const getCommunityPosts = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        posts: postsWithUserVote,
+        posts: postsWithUserState,
         pagination: {
           page,
           limit,
@@ -524,7 +538,7 @@ const getPersonalPosts = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  const postsWithUserVote = await getPostsWithUserVote(
+  const postsWithUserState = await getPostsWithUserState(
     posts,
     userId,
   );
@@ -541,7 +555,7 @@ const getPersonalPosts = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        posts: postsWithUserVote,
+        posts: postsWithUserState,
         pagination: {
           page,
           limit,
@@ -604,7 +618,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit);
 
-  const postsWithUserVote = await getPostsWithUserVote(
+  const postsWithUserState = await getPostsWithUserState(
     posts,
     userId,
   );
@@ -628,7 +642,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        posts: postsWithUserVote,
+        posts: postsWithUserState,
         pagination: {
           page,
           limit,
