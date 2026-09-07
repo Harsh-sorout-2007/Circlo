@@ -407,15 +407,18 @@ const getPost = asyncHandler(async (req, res) => {
     isRemoved: false,
   })
     .populate("author", "username displayName avatar")
-    .populate("community", "name icon");
+    .populate("community", "name icon owner");
 
   if (!post) {
     throw new ApiError(404, "Post not found");
   }
 
+  const postsWithUserState = await getPostsWithUserState([post], req.user._id);
+  const postWithState = postsWithUserState[0];
+
   return res
     .status(200)
-    .json(new ApiResponse(200, post, "Post fetched successfully"));
+    .json(new ApiResponse(200, postWithState, "Post fetched successfully"));
 });
 
 const getPostsWithUserState = async (posts, userId) => {
@@ -483,7 +486,7 @@ const getCommunityPosts = asyncHandler(async (req, res) => {
     isRemoved: false,
   })
     .populate("author", "username displayName avatar")
-    .populate("community", "name icon")
+    .populate("community", "name icon owner")
     .sort(sortOption)
     .skip(skip)
     .limit(limit);
@@ -533,7 +536,7 @@ const getPersonalPosts = asyncHandler(async (req, res) => {
     isRemoved: false,
   })
     .populate("author", "username displayName avatar")
-    .populate("community", "name icon")
+    .populate("community", "name icon owner")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -613,7 +616,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     ],
   })
     .populate("author", "displayName username avatar")
-    .populate("community", "name icon")
+    .populate("community", "name icon owner")
     .sort(sortOption)
     .skip(skip)
     .limit(limit);
@@ -672,7 +675,7 @@ const searchPosts = asyncHandler(async (req, res) => {
     ],
   })
     .populate("author", "displayName username avatar")
-    .populate("community", "name icon")
+    .populate("community", "name icon owner")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -706,6 +709,60 @@ const searchPosts = asyncHandler(async (req, res) => {
   );
 });
 
+const getUserPosts = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const User = mongoose.model("User");
+  const user = await User.findOne({ username });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const posts = await Post.find({
+    author: user._id,
+    isRemoved: false,
+  })
+    .populate("author", "username displayName avatar")
+    .populate("community", "name icon owner")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  let postsWithUserState = posts;
+  if (req.user) {
+    postsWithUserState = await getPostsWithUserState(posts, req.user._id);
+  }
+
+  const totalPosts = await Post.countDocuments({
+    author: user._id,
+    isRemoved: false,
+  });
+
+  const totalPages = Math.ceil(totalPosts / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        posts: postsWithUserState,
+        pagination: {
+          page,
+          limit,
+          totalPosts,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "User posts fetched successfully",
+    ),
+  );
+});
+
 export {
   createPersonalPost,
   createCommunityPost,
@@ -716,4 +773,5 @@ export {
   getPersonalPosts,
   getHomeFeed,
   searchPosts,
+  getUserPosts,
 };

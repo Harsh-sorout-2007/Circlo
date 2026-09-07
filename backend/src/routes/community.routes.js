@@ -13,14 +13,24 @@ import {
   getCommunityByName,
   banMember,
   unbanMember,
+  getAllCommunities,
+  searchCommunities,
 } from "../controllers/community.controller.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyJWT, optionalVerifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import { communityValidator } from "../validators/index.js";
 import { validateObjectId } from "../middlewares/validateObect.middleware.js";
 import { paginationValidator } from "../validators/pagination.validator.js";
 
+import { searchValidator } from "../validators/search.validator.js";
+
+import { upload } from "../middlewares/multer.middleware.js";
+
 const router = Router();
+
+router.route("/").get(optionalVerifyJWT, paginationValidator(), validate, getAllCommunities);
+
+router.route("/search").get(paginationValidator(), searchValidator(), validate, searchCommunities);
 
 router
   .route("/create-community")
@@ -28,8 +38,13 @@ router
 
 router
   .route("/id/:communityId")
-  .get(verifyJWT, validateObjectId("communityId"), getCommunity)
-  .patch(verifyJWT, validateObjectId("communityId"), updateCommunity)
+  .get(optionalVerifyJWT, validateObjectId("communityId"), getCommunity)
+  .patch(
+    verifyJWT,
+    validateObjectId("communityId"),
+    upload.fields([{ name: "icon", maxCount: 1 }, { name: "banner", maxCount: 1 }]),
+    updateCommunity
+  )
   .delete(verifyJWT, validateObjectId("communityId"), deleteCommunity);
 
 router.route("/:communityName").get(getCommunityByName);
@@ -89,3 +104,4 @@ router
   );
 
 export default router;
+// trigger nodemon

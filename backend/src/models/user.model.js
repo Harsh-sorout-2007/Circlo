@@ -26,6 +26,9 @@ const userSchema = new Schema(
     avatar: {
       type: String,
     },
+    avatarPublicId: {
+      type: String,
+    },
     displayName: {
       type: String,
       required: true,
@@ -89,7 +92,7 @@ userSchema.methods.generateTemporaryToken = async function () {
     .update(unHashedToken)
     .digest("hex");
 
-  const tokenExpiry = Date.now() + 20 * 60 * 1000;
+  const tokenExpiry = Date.now() + 24*60 * 60 * 1000;
 
   return { unHashedToken, hashedToken, tokenExpiry };
 };

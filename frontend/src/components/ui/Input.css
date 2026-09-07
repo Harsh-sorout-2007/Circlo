@@ -1,12 +1,21 @@
 .input-wrapper { display: flex; flex-direction: column; gap: 4px; width: 100%; }
 .input {
-  padding: 8px 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: var(--radius-xs);
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
+  background: transparent;
+  font-family: var(--font-body);
   font-size: 14px;
-  background: #f6f7f8;
-  transition: all 0.2s;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  outline: none;
 }
-.input:hover, .input:focus { border-color: var(--secondary-color); background: #fff; outline: none; }
+.input::placeholder {
+  color: var(--text-muted);
+}
+.input:focus {
+  border-color: var(--brand-accent);
+}
 .input-error { border-color: red; }
 .input-error-text { color: red; font-size: 12px; }

@@ -5,4 +5,17 @@ const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+        // Broadcast custom event so AuthContext can hear it, or simply redirect.
+        window.dispatchEvent(new Event('auth-expired'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

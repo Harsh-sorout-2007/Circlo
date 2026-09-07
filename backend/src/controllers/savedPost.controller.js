@@ -59,15 +59,44 @@ const getSavedPost = asyncHandler(async (req, res) => {
 
   const skip = (page - 1) * limit;
 
-  const savedPost = await SavedPost.find({ user: userId })
+  const savedPosts = await SavedPost.find({ user: userId })
     .sort({ createdAt: -1 })
-    .populate("post")
+    .populate({
+      path: "post",
+      populate: [
+        { path: "author", select: "username displayName avatar" },
+        { path: "community", select: "name icon" }
+      ]
+    })
     .skip(skip)
     .limit(limit);
 
+  // Extract the actual posts from savedPost documents
+  const validPosts = savedPosts
+    .map(sp => sp.post)
+    .filter(post => post && !post.isRemoved);
+
+  // Import getPostsWithUserState dynamically to avoid circular dependencies if any,
+  // or just inline the user state logic here. Since it's saved posts, isSaved is true.
+  const { Vote } = await import("../models/vote.model.js");
+  const postIds = validPosts.map((post) => post._id);
+  const votes = await Vote.find({
+    user: userId,
+    targetType: "Post",
+    target: { $in: postIds },
+  }).select("target value").lean();
+
+  const voteMap = new Map(votes.map((vote) => [vote.target.toString(), vote.value]));
+
+  const postsWithState = validPosts.map((post) => ({
+    ...post.toObject(),
+    userVote: voteMap.get(post._id.toString()) || 0,
+    isSaved: true,
+  }));
+
   return res
     .status(200)
-    .json(new ApiResponse(200, savedPost, "Saved Posts fetched successfully"));
+    .json(new ApiResponse(200, postsWithState, "Saved Posts fetched successfully"));
 });
 
 export { savePost, removeSavedPost, getSavedPost };

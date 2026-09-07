@@ -2,6 +2,8 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
+import { uploadToCloudinary } from "../utils/cloudinary.upload.js";
+import { cloudinary } from "../config/cloudinary.js";
 
 const getUserProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
@@ -22,7 +24,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const { displayName, avatar, bio } = req.body;
+  const { displayName, bio } = req.body;
 
   const updates = {};
 
@@ -34,8 +36,18 @@ const updateProfile = asyncHandler(async (req, res) => {
     updates.bio = bio;
   }
 
-  if (avatar !== undefined) {
-    updates.avatar = avatar;
+  const userToUpdate = await User.findById(userId);
+
+  if (req.file) {
+    const result = await uploadToCloudinary(req.file.buffer, "image");
+    updates.avatar = result.secure_url;
+    updates.avatarPublicId = result.public_id;
+
+    if (userToUpdate.avatarPublicId) {
+      await cloudinary.uploader.destroy(userToUpdate.avatarPublicId, {
+        resource_type: "image",
+      }).catch(err => console.error("Cloudinary cleanup error:", err));
+    }
   }
 
   if (Object.keys(updates).length === 0) {
@@ -58,4 +70,49 @@ const updateProfile = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "User profile updated successfully"));
 });
-export { getUserProfile, updateProfile };
+const searchUsers = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const users = await User.find({
+    $or: [
+      { username: { $regex: q, $options: "i" } },
+      { displayName: { $regex: q, $options: "i" } },
+    ],
+  })
+    .select("username displayName avatar bio")
+    .skip(skip)
+    .limit(limit);
+
+  const totalUsers = await User.countDocuments({
+    $or: [
+      { username: { $regex: q, $options: "i" } },
+      { displayName: { $regex: q, $options: "i" } },
+    ],
+  });
+
+  const totalPages = Math.ceil(totalUsers / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        users,
+        pagination: {
+          page,
+          limit,
+          totalUsers,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Search users fetched successfully",
+    ),
+  );
+});
+
+export { getUserProfile, updateProfile, searchUsers };

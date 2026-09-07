@@ -10,9 +10,10 @@ import {
   getPersonalPosts,
   getHomeFeed,
   searchPosts,
+  getUserPosts,
 } from "../controllers/post.controller.js";
 
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyJWT, optionalVerifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import { postValidator } from "../validators/post.validator.js";
 import { searchValidator } from "../validators/search.validator.js";
@@ -64,6 +65,10 @@ router
     validate,
     searchPosts,
   );
+
+router
+  .route("/user/:username")
+  .get(optionalVerifyJWT, paginationValidator(), validate, getUserPosts);
 
 router
   .route("/:postId")

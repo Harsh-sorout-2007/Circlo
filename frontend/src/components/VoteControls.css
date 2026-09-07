@@ -1,24 +1,60 @@
-.vote-controls {
-  display: flex;
-  flex-direction: column;
+.vote-controls-pill {
+  display: inline-flex;
   align-items: center;
-  width: 40px;
-  padding: 8px 4px;
-  background: #f8f9fa;
-  border-right: 1px solid var(--border-color);
+  background: var(--bg-surface-hover);
+  border-radius: var(--radius-full);
+  height: 36px;
+  padding: 0 4px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
 }
+.vote-controls-pill.active-up {
+  background: var(--vote-up-bg);
+  border-color: rgba(249, 115, 22, 0.2);
+}
+.vote-controls-pill.active-down {
+  background: var(--vote-down-bg);
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
 .vote-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  color: #878a8c;
-  padding: 2px;
-  border-radius: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
-.vote-btn:hover { background: rgba(26,26,27,0.1); }
-.vote-btn.upvote:hover, .vote-btn.upvote.active { color: var(--upvote-color); }
-.vote-btn.downvote:hover, .vote-btn.downvote.active { color: var(--downvote-color); }
-.vote-score { font-size: 12px; font-weight: 700; margin: 4px 0; }
-.vote-score.upvoted { color: var(--upvote-color); }
-.vote-score.downvoted { color: var(--downvote-color); }
+.vote-btn:hover {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary);
+}
+.vote-btn.upvote:hover, .vote-btn.upvote.active {
+  color: var(--vote-up);
+}
+.vote-btn.downvote:hover, .vote-btn.downvote.active {
+  color: var(--vote-down);
+}
+.vote-btn:active {
+  transform: scale(0.9);
+}
+
+.vote-score {
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 20px;
+  text-align: center;
+  color: var(--text-primary);
+  margin: 0 4px;
+}
+.vote-score.upvoted {
+  color: var(--vote-up);
+}
+.vote-score.downvoted {
+  color: var(--vote-down);
+}

@@ -1,16 +1,16 @@
 import React from 'react';
-import { Card } from './ui/Card';
-import { Input } from './ui/Input';
 import { Avatar } from './ui/Avatar';
 import { useNavigate } from 'react-router-dom';
 import './CreatePostWidget.css';
 
-export const CreatePostWidget = () => {
+export const CreatePostWidget = ({ communityId }) => {
   const navigate = useNavigate();
   return (
-    <Card className="create-post-widget">
-      <Avatar />
-      <Input placeholder="Create Post" onClick={() => navigate('/submit')} />
-    </Card>
+    <div className="create-post-widget" onClick={() => navigate(communityId ? `/submit?communityId=${communityId}` : '/submit')}>
+      <Avatar size={40} />
+      <div className="create-post-input">
+        <span className="create-post-placeholder">Start a discussion...</span>
+      </div>
+    </div>
   );
 };

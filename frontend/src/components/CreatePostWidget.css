@@ -1,1 +1,26 @@
-.create-post-widget { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 16px; }
+.create-post-widget { 
+  display: flex; 
+  align-items: center; 
+  gap: 16px; 
+  padding: 16px; 
+  margin-bottom: 24px; 
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  cursor: text;
+}
+.create-post-widget:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-hover);
+}
+.create-post-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.create-post-placeholder {
+  pointer-events: none;
+}

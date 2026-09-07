@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { PostCard } from '../components/PostCard';
 import { CreatePostWidget } from '../components/CreatePostWidget';
@@ -63,8 +64,24 @@ const Home = () => {
     }
   };
 
+  const navigate = useNavigate();
+
+  const sidebar = (
+    <Card className="p-6">
+      <h3 className="font-bold mb-2">Home</h3>
+      <p className="text-sm text-muted mb-4">Your personal Circlo frontpage. Discover communities, view saved posts, and join the conversation.</p>
+      <div className="flex flex-col gap-2">
+        <Button variant="primary" onClick={() => navigate('/communities')} className="w-full">Discover Communities</Button>
+        <Button variant="outline" onClick={() => navigate('/create-community')} className="w-full">Create Community</Button>
+        {currentUser && (
+          <Button variant="ghost" onClick={() => navigate('/saved')} className="w-full">Saved Posts</Button>
+        )}
+      </div>
+    </Card>
+  );
+
   return (
-    <MainLayout>
+    <MainLayout sidebar={sidebar}>
       <CreatePostWidget />
 
       {!authLoading && !currentUser ? (

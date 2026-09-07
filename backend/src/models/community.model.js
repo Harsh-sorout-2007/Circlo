@@ -16,7 +16,13 @@ const communitySchema = new Schema(
     icon: {
       type: String,
     },
+    iconPublicId: {
+      type: String,
+    },
     banner: {
+      type: String,
+    },
+    bannerPublicId: {
       type: String,
     },
     owner: {

@@ -11,6 +11,7 @@ import { Vote } from "../models/vote.model.js";
 import { SavedPost } from "../models/savedPosts.model.js";
 import { Report } from "../models/report.model.js";
 import { cloudinary } from "../config/cloudinary.js";
+import { uploadToCloudinary } from "../utils/cloudinary.upload.js";
 
 const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
@@ -175,9 +176,20 @@ const getCommunity = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Community not found");
   }
 
+  let userRole = null;
+  if (req.user) {
+    const member = await CommunityMember.findOne({
+      community: communityId,
+      user: req.user._id,
+    });
+    if (member) {
+      userRole = member.role;
+    }
+  }
+
   return res
     .status(200)
-    .json(new ApiResponse(200, community, "Community fetched successfully"));
+    .json(new ApiResponse(200, { ...community.toObject(), userRole }, "Community fetched successfully"));
 });
 
 const getCommunityByName = asyncHandler(async (req, res) => {
@@ -204,7 +216,7 @@ const getCommunityByName = asyncHandler(async (req, res) => {
 
 const updateCommunity = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
-  const { name, description, icon, banner, rules } = req.body;
+  const { name, description, rules } = req.body;
 
   const community = await Community.findOne({
     _id: communityId,
@@ -218,9 +230,36 @@ const updateCommunity = asyncHandler(async (req, res) => {
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (description !== undefined) updateData.description = description;
-  if (icon !== undefined) updateData.icon = icon;
-  if (banner !== undefined) updateData.banner = banner;
-  if (rules !== undefined) updateData.rules = rules;
+  
+  if (rules !== undefined) {
+    if (typeof rules === "string") {
+      try {
+        updateData.rules = JSON.parse(rules);
+      } catch {
+        updateData.rules = [rules];
+      }
+    } else {
+      updateData.rules = rules;
+    }
+  }
+
+  if (req.files?.icon && req.files.icon[0]) {
+    const result = await uploadToCloudinary(req.files.icon[0].buffer, "image");
+    updateData.icon = result.secure_url;
+    updateData.iconPublicId = result.public_id;
+    if (community.iconPublicId) {
+      await cloudinary.uploader.destroy(community.iconPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    }
+  }
+
+  if (req.files?.banner && req.files.banner[0]) {
+    const result = await uploadToCloudinary(req.files.banner[0].buffer, "image");
+    updateData.banner = result.secure_url;
+    updateData.bannerPublicId = result.public_id;
+    if (community.bannerPublicId) {
+      await cloudinary.uploader.destroy(community.bannerPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    }
+  }
 
   const updatedCommunity = await Community.findByIdAndUpdate(
     communityId,
@@ -609,9 +648,107 @@ const unbanMember = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, updatedMember, "User unbanned successfully"));
 });
 
+const getAllCommunities = asyncHandler(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const communities = await Community.find()
+    .select("name description icon memberCount owner")
+    .sort({ memberCount: -1, createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalCommunities = await Community.countDocuments();
+  const totalPages = Math.ceil(totalCommunities / limit);
+
+  let communitiesWithRoles = communities.map(c => ({ ...c.toObject(), userRole: null }));
+
+  if (req.user) {
+    const userMemberships = await CommunityMember.find({
+      user: req.user._id,
+      community: { $in: communities.map(c => c._id) }
+    });
+
+    const membershipMap = userMemberships.reduce((acc, curr) => {
+      acc[curr.community.toString()] = curr.role;
+      return acc;
+    }, {});
+
+    communitiesWithRoles = communitiesWithRoles.map(c => ({
+      ...c,
+      userRole: membershipMap[c._id.toString()] || null
+    }));
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        communities: communitiesWithRoles,
+        pagination: {
+          page,
+          limit,
+          totalCommunities,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Communities fetched successfully"
+    )
+  );
+});
+
+const searchCommunities = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const communities = await Community.find({
+    $or: [
+      { name: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+    ],
+  })
+    .select("name description icon memberCount owner")
+    .sort({ memberCount: -1, createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalCommunities = await Community.countDocuments({
+    $or: [
+      { name: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+    ],
+  });
+  
+  const totalPages = Math.ceil(totalCommunities / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        communities,
+        pagination: {
+          page,
+          limit,
+          totalCommunities,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Communities fetched successfully"
+    )
+  );
+});
+
 export {
   createCommunity,
   getCommunity,
+  getAllCommunities,
   getCommunityByName,
   updateCommunity,
   deleteCommunity,
@@ -622,4 +759,5 @@ export {
   removeMember,
   banMember,
   unbanMember,
+  searchCommunities,
 };
