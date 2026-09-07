@@ -1,0 +1,12 @@
+.input-wrapper { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  background: #f6f7f8;
+  transition: all 0.2s;
+}
+.input:hover, .input:focus { border-color: var(--secondary-color); background: #fff; outline: none; }
+.input-error { border-color: red; }
+.input-error-text { color: red; font-size: 12px; }

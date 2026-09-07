@@ -1,0 +1,22 @@
+.navbar {
+  height: var(--navbar-height);
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.navbar-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.logo-circle { width: 32px; height: 32px; background: var(--primary-color); border-radius: 50%; }
+.logo-text { font-size: 20px; font-weight: bold; color: var(--text-primary); letter-spacing: -0.5px; }
+.navbar-search { flex: 1; max-width: 600px; margin: 0 20px; }
+.navbar-actions { display: flex; gap: 12px; }

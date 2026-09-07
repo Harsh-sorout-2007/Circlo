@@ -1,0 +1,5 @@
+.sidebar { width: 312px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+.sidebar-card { padding: 12px; }
+.sidebar-header { margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+.sidebar-body { font-size: 14px; color: var(--text-primary); line-height: 1.4; }
+@media (max-width: 768px) { .sidebar { display: none; } }
