@@ -17,33 +17,52 @@ const createCommunity = asyncHandler(async (req, res) => {
   const { name, description, icon, banner, rules } = req.body;
   const owner = req.user._id;
 
-  const community = await Community.create({
-    name,
-    description,
-    icon,
-    banner,
-    rules,
-    owner: owner,
-    memberCount: 1,
-  });
+  const session = await mongoose.startSession();
+  let createdCommunity;
 
-  await CommunityMember.create({
-    user: owner,
-    community: community._id,
-    role: communityRoles.OWNER,
-    joinedAt: new Date(),
-  });
+  try {
+    await session.withTransaction(async () => {
+      const communities = await Community.create(
+        [
+          {
+            name,
+            description,
+            icon,
+            banner,
+            rules,
+            owner: owner,
+            memberCount: 1,
+          },
+        ],
+        { session }
+      );
+      const community = communities[0];
 
-  const createdCommunity = await Community.findById(community._id).populate(
-    "owner",
-    "displayName username",
-  );
+      await CommunityMember.create(
+        [
+          {
+            user: owner,
+            community: community._id,
+            role: communityRoles.OWNER,
+            joinedAt: new Date(),
+          },
+        ],
+        { session }
+      );
 
-  if (!createdCommunity) {
-    throw new ApiError(
-      500,
-      "Something went wrong while creating your community",
-    );
+      createdCommunity = await Community.findById(community._id)
+        .populate("owner", "displayName username")
+        .session(session);
+
+      if (!createdCommunity) {
+        throw new ApiError(
+          500,
+          "Something went wrong while creating your community",
+        );
+      }
+    });
+  } finally {
+    await session.endSession();
   }
 
   return res
@@ -148,9 +167,13 @@ const deleteCommunity = asyncHandler(async (req, res) => {
   }
 
   for (const media of cloudinaryMedia) {
-    await cloudinary.uploader.destroy(media.publicId, {
-      resource_type: media.resourceType,
-    });
+    try {
+      await cloudinary.uploader.destroy(media.publicId, {
+        resource_type: media.resourceType,
+      });
+    } catch (error) {
+      console.error(`Failed to delete community media ${media.publicId} from Cloudinary:`, error);
+    }
   }
 
   return res
@@ -388,6 +411,9 @@ const leaveCommunity = asyncHandler(async (req, res) => {
 
 const getCommunityMembers = asyncHandler(async (req, res) => {
   const { communityId } = req.params;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
   const community = await Community.findById(communityId);
 
@@ -397,11 +423,35 @@ const getCommunityMembers = asyncHandler(async (req, res) => {
 
   const members = await CommunityMember.find({
     community: communityId,
-  }).populate("user", "username displayName avatar");
+  })
+    .populate("user", "username displayName avatar")
+    .sort({ joinedAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, members, "Members fetched successfully"));
+  const totalMembers = await CommunityMember.countDocuments({
+    community: communityId,
+  });
+
+  const totalPages = Math.ceil(totalMembers / limit);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        members,
+        pagination: {
+          page,
+          limit,
+          totalMembers,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      },
+      "Members fetched successfully",
+    ),
+  );
 });
 
 const updateMemberRole = asyncHandler(async (req, res) => {

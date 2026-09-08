@@ -1,4 +1,3 @@
-import React from 'react';
 import { ArrowUp, ArrowDown, MessageSquare, Bookmark, Search } from 'lucide-react';
 
 export const IconUpvote = ({ active, className = '' }) => (

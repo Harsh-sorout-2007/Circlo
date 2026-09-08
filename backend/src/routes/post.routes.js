@@ -59,7 +59,7 @@ router
 router
   .route("/search")
   .get(
-    verifyJWT,
+    optionalVerifyJWT,
     paginationValidator(),
     searchValidator(),
     validate,

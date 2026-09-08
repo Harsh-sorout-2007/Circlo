@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { PostCard } from '../components/PostCard';
 import { CreatePostWidget } from '../components/CreatePostWidget';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 
 const Home = () => {
@@ -20,42 +20,43 @@ const Home = () => {
   const [sort, setSort] = useState('new');
 
   useEffect(() => {
+    const fetchFeed = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get('/posts/feed', {
+          params: {
+            page,
+            limit: 10,
+            sort
+          }
+        });
+
+        if (!response.data.success) {
+          throw new Error("Failed to load feed");
+        }
+
+        setPosts(response.data.data.posts);
+        setPagination(response.data.data.pagination);
+      } catch (err) {
+        if (err.response?.status === 401) {
+          setError("Please log in to view your feed.");
+        } else {
+          setError(err.response?.data?.message || "Failed to load home feed.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
     // Only fetch if auth is done and user is logged in
     if (!authLoading && currentUser) {
       fetchFeed();
     } else if (!authLoading && !currentUser) {
-      setLoading(false);
+      const timer = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(timer);
     }
   }, [page, sort, currentUser, authLoading]);
-
-  const fetchFeed = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get('/posts/feed', {
-        params: {
-          page,
-          limit: 10,
-          sort
-        }
-      });
-
-      if (!response.data.success) {
-        throw new Error("Failed to load feed");
-      }
-
-      setPosts(response.data.data.posts);
-      setPagination(response.data.data.pagination);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        setError("Please log in to view your feed.");
-      } else {
-        setError(err.response?.data?.message || "Failed to load home feed.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSortChange = (newSort) => {
     if (newSort !== sort) {

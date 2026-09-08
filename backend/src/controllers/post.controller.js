@@ -382,21 +382,26 @@ const deletePost = asyncHandler(async (req, res) => {
     );
 
     await session.commitTransaction();
-    if (post.mediaPublicId) {
-      await cloudinary.uploader.destroy(post.mediaPublicId, {
-        resource_type: post.type === "VIDEO" ? "video" : "image",
-      });
-    }
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "Post deleted successfully"));
   } catch (error) {
     await session.abortTransaction();
     throw error;
   } finally {
     await session.endSession();
   }
+
+  if (post.mediaPublicId) {
+    try {
+      await cloudinary.uploader.destroy(post.mediaPublicId, {
+        resource_type: post.type === "VIDEO" ? "video" : "image",
+      });
+    } catch (error) {
+      console.error("Failed to clean up Cloudinary media after post deletion:", error);
+    }
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Post deleted successfully"));
 });
 
 const getPost = asyncHandler(async (req, res) => {
@@ -690,11 +695,16 @@ const searchPosts = asyncHandler(async (req, res) => {
 
   const totalPages = Math.ceil(totalPosts / limit);
 
+  let finalPosts = posts;
+  if (req.user) {
+    finalPosts = await getPostsWithUserState(posts, req.user._id);
+  }
+
   return res.status(200).json(
     new ApiResponse(
       200,
       {
-        posts,
+        posts: finalPosts,
         pagination: {
           page,
           limit,

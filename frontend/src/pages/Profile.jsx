@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { PostCard } from '../components/PostCard';
@@ -6,7 +6,7 @@ import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { Camera, Edit2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 
 const Profile = () => {
@@ -22,8 +22,24 @@ const Profile = () => {
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editAvatarFile, setEditAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [savingProfile, setSavingProfile] = useState(false);
   const avatarInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!editAvatarFile) {
+      const timer = setTimeout(() => setAvatarPreview(null), 0);
+      return () => clearTimeout(timer);
+    }
+
+    const objectUrl = URL.createObjectURL(editAvatarFile);
+    const timer = setTimeout(() => setAvatarPreview(objectUrl), 0);
+
+    return () => {
+      clearTimeout(timer);
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [editAvatarFile]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -116,7 +132,7 @@ const Profile = () => {
               onClick={() => avatarInputRef.current?.click()}
               className="group"
             >
-              <Avatar src={editAvatarFile ? URL.createObjectURL(editAvatarFile) : profileUser.avatar} size={96} />
+              <Avatar src={avatarPreview || profileUser.avatar} size={96} />
               <div 
                 className="group-hover:opacity-100 transition-opacity"
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0 }}

@@ -1,4 +1,3 @@
-import React from 'react';
 import { IconUpvote, IconDownvote } from './ui/Icons';
 import './VoteControls.css';
 

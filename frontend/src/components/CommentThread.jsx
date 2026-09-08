@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { CommentCard } from './CommentCard';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import './Comment.css';
 
@@ -79,10 +79,10 @@ export const CommentThread = ({ postId }) => {
     setComments(prev => updateReplies(prev));
   };
 
-  const handleCommentDeleted = (commentId, parentId) => {
+  const handleCommentDeleted = (deletedCommentId) => {
     const markDeleted = (nodes) => {
       return nodes.map(node => {
-        if (node._id === commentId) {
+        if (node._id === deletedCommentId) {
           return { ...node, isRemoved: true };
         }
         if (node.replies && node.replies.length > 0) {
@@ -92,6 +92,21 @@ export const CommentThread = ({ postId }) => {
       });
     };
     setComments(prev => markDeleted(prev));
+  };
+
+  const handleCommentEdited = (commentId, newContent) => {
+    const updateEdited = (nodes) => {
+      return nodes.map(node => {
+        if (node._id === commentId) {
+          return { ...node, content: newContent };
+        }
+        if (node.replies && node.replies.length > 0) {
+          return { ...node, replies: updateEdited(node.replies) };
+        }
+        return node;
+      });
+    };
+    setComments(prev => updateEdited(prev));
   };
 
   return (
@@ -135,6 +150,7 @@ export const CommentThread = ({ postId }) => {
               postId={postId}
               onReply={handleReplyAdded}
               onDelete={handleCommentDeleted}
+              onEdit={handleCommentEdited}
             />
           ))}
         </div>

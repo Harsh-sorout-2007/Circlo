@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { Card } from '../components/ui/Card';
@@ -26,7 +26,8 @@ const CommunityModTools = () => {
   const iconInputRef = useRef(null);
   const bannerInputRef = useRef(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    await Promise.resolve();
     try {
       setLoading(true);
       const [commRes, memRes, repRes] = await Promise.all([
@@ -42,18 +43,21 @@ const CommunityModTools = () => {
         setDescription(c.description || '');
         setRules((c.rules || []).join('\n'));
       }
-      if (memRes.data.success) setMembers(memRes.data.data);
+      if (memRes.data.success) {
+        setMembers(memRes.data.data.members || memRes.data.data);
+      }
       if (repRes.data.success) setReports(repRes.data.data.reports || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load mod tools');
     } finally {
       setLoading(false);
     }
-  };
+  }, [communityId]);
 
   useEffect(() => {
-    fetchData();
-  }, [communityId]);
+    const timer = setTimeout(() => fetchData(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchData]);
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();

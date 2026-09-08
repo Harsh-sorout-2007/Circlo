@@ -99,14 +99,30 @@ const getComments = asyncHandler(async (req, res) => {
 
   const comments = await Comment.find({
     post: postId,
-    isRemoved: false,
   })
     .populate("author", "username displayName avatar")
     .sort({ createdAt: 1 })
     .lean();
 
+  let userVotesMap = new Map();
+  if (req.user) {
+    const Vote = mongoose.model("Vote");
+    const commentIds = comments.map(c => c._id);
+    const votes = await Vote.find({
+      user: req.user._id,
+      targetType: "Comment",
+      target: { $in: commentIds }
+    }).select("target value").lean();
+    
+    votes.forEach(v => userVotesMap.set(v.target.toString(), v.value));
+  }
+
   const commentsWithReplies = comments.map((comment) => {
-    return { ...comment, replies: [] };
+    return { 
+      ...comment, 
+      userVote: userVotesMap.get(comment._id.toString()) || 0,
+      replies: [] 
+    };
   });
 
   const commentMap = {};
@@ -118,10 +134,9 @@ const getComments = asyncHandler(async (req, res) => {
   commentsWithReplies.forEach((comment) => {
     if (comment.parentComment) {
       const parent = commentMap[comment.parentComment];
-      if (!parent) {
-        throw new ApiError(404, "Parent not found");
+      if (parent) {
+        parent.replies.push(comment);
       }
-      parent.replies.push(comment);
     }
   });
 
@@ -131,10 +146,30 @@ const getComments = asyncHandler(async (req, res) => {
     );
   });
 
+  const cleanTree = (nodes) => {
+    return nodes.filter(node => {
+      if (node.replies && node.replies.length > 0) {
+        node.replies = cleanTree(node.replies);
+      }
+      
+      if (node.isRemoved) {
+        if (!node.replies || node.replies.length === 0) {
+          return false;
+        }
+        node.content = "[This comment was deleted]";
+        node.author = null;
+      }
+      
+      return true;
+    });
+  };
+
+  const finalComments = cleanTree(topLevelComments);
+
   return res
     .status(200)
     .json(
-      new ApiResponse(200, topLevelComments, "Comments fetched successfully"),
+      new ApiResponse(200, finalComments, "Comments fetched successfully"),
     );
 });
 
@@ -245,8 +280,8 @@ const deleteComment = asyncHandler(async (req, res) => {
         { session },
       );
 
-      await Post.findByIdAndUpdate(
-        postId,
+      await Post.findOneAndUpdate(
+        { _id: postId, commentCount: { $gt: 0 } },
         {
           $inc: { commentCount: -1 },
         },

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Avatar } from './ui/Avatar';
 import { useNavigate } from 'react-router-dom';
 import './CreatePostWidget.css';

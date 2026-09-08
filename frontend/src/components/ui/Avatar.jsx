@@ -1,4 +1,3 @@
-import React from 'react';
 export const Avatar = ({ src, alt = "Avatar", size = 32, className = '' }) => {
   return (
     <img 

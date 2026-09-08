@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Users } from 'lucide-react';
 import { MainLayout } from '../layouts/MainLayout';
@@ -7,7 +7,7 @@ import { CreatePostWidget } from '../components/CreatePostWidget';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const Community = () => {
   const { communityId } = useParams();

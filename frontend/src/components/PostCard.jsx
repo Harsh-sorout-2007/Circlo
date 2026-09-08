@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Flag, Trash2 } from 'lucide-react';
 import { Avatar } from './ui/Avatar';
 import { VoteControls } from './VoteControls';
 import { IconComment, IconBookmark } from './ui/Icons';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
+import { RelativeTime } from './ui/RelativeTime';
 import './PostCard.css';
 
 export const PostCard = ({ post }) => {
@@ -18,16 +19,6 @@ export const PostCard = ({ post }) => {
   const [voteError, setVoteError] = useState(null);
 
   const [saveLoading, setSaveLoading] = useState(false);
-
-  // Formatting date nicely
-  const timeAgo = (dateStr) => {
-    if (!dateStr) return '';
-    const diff = new Date() - new Date(dateStr);
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 1) return 'Just now';
-    if (hours < 24) return `${hours}h`;
-    return `${Math.floor(hours / 24)}d`;
-  };
 
   const { currentUser } = useAuth();
 
@@ -169,7 +160,7 @@ export const PostCard = ({ post }) => {
               {post.author?.username}
             </Link>
             <span className="post-dot">·</span>
-            <span className="post-time">{timeAgo(post.createdAt)}</span>
+            <RelativeTime dateStr={post.createdAt} className="post-time" />
           </div>
           {post.community && (
             <Link to={`/community/${post.community._id}`} className="post-community-name">

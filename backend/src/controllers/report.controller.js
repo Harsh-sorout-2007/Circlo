@@ -82,72 +82,43 @@ const getReports = asyncHandler(async (req, res) => {
 
   const postIds = posts.map((post) => post._id);
 
-  const postReports = await Report.find({
-    targetType: "Post",
-    target: { $in: postIds },
-  })
-    .populate("reporter", "username displayName avatar")
-    .populate({
-      path: "target",
-      select: "title content author community score commentCount createdAt",
-      populate: [
-        {
-          path: "author",
-          select: "username displayName avatar",
-        },
-        {
-          path: "community",
-          select: "name icon",
-        },
-      ],
-    })
-    .sort({ createdAt: -1 });
-
   const comments = await Comment.find({
     post: { $in: postIds },
   }).select("_id");
 
   const commentIds = comments.map((comment) => comment._id);
 
-  const commentReports = await Report.find({
-    targetType: "Comment",
-    target: { $in: commentIds },
-  })
+  const query = {
+    $or: [
+      { targetType: "Post", target: { $in: postIds } },
+      { targetType: "Comment", target: { $in: commentIds } },
+    ],
+  };
+
+  const paginatedReports = await Report.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .populate("reporter", "username displayName avatar")
     .populate({
       path: "target",
-      select: "content author post score createdAt",
+      select: "title content author community score commentCount post createdAt",
       populate: [
-        {
-          path: "author",
-          select: "username displayName avatar",
-        },
+        { path: "author", select: "username displayName avatar" },
+        { path: "community", select: "name icon" },
         {
           path: "post",
           select: "title author community",
           populate: [
-            {
-              path: "author",
-              select: "username displayName avatar",
-            },
-            {
-              path: "community",
-              select: "name icon",
-            },
+            { path: "author", select: "username displayName avatar" },
+            { path: "community", select: "name icon" },
           ],
         },
       ],
-    })
-    .sort({ createdAt: -1 });
+    });
 
-  const reports = [...postReports, ...commentReports];
-
-  reports.sort((a, b) => b.createdAt - a.createdAt);
-
-  const totalReports = reports.length;
+  const totalReports = await Report.countDocuments(query);
   const totalPages = Math.ceil(totalReports / limit);
-
-  const paginatedReports = reports.slice(skip, skip + limit);
 
   return res.status(200).json(
     new ApiResponse(
