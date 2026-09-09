@@ -269,13 +269,9 @@ const updatePost = asyncHandler(async (req, res) => {
   }
 
   if (post.mediaPublicId && post.mediaPublicId !== newMediaPublicId) {
-    try {
-      await cloudinary.uploader.destroy(post.mediaPublicId, {
-        resource_type: post.type === "VIDEO" ? "video" : "image",
-      });
-    } catch (error) {
-      console.error("Failed to delete old Cloudinary media:", error);
-    }
+    cloudinary.uploader.destroy(post.mediaPublicId, {
+      resource_type: post.type === "VIDEO" ? "video" : "image",
+    }).catch(error => console.error("Failed to delete old Cloudinary media:", error));
   }
 
   return res
