@@ -318,73 +318,68 @@ const deletePost = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
-    session.startTransaction();
+    await session.withTransaction(async () => {
+      const comments = await Comment.find({
+        post: postId,
+      })
+        .select("_id")
+        .session(session);
 
-    const comments = await Comment.find({
-      post: postId,
-    })
-      .select("_id")
-      .session(session);
+      const commentIds = comments.map((comment) => comment._id);
 
-    const commentIds = comments.map((comment) => comment._id);
-
-    await Comment.updateMany(
-      { post: postId },
-      {
-        $set: {
-          isRemoved: true,
-        },
-      },
-      { session },
-    );
-
-    await Vote.deleteMany({
-      $or: [
+      await Comment.updateMany(
+        { post: postId },
         {
-          target: postId,
-          targetType: "Post",
+          $set: {
+            isRemoved: true,
+          },
+        },
+        { session },
+      );
+
+      await Vote.deleteMany({
+        $or: [
+          {
+            target: postId,
+            targetType: "Post",
+          },
+          {
+            target: { $in: commentIds },
+            targetType: "Comment",
+          },
+        ],
+      }).session(session);
+
+      await SavedPost.deleteMany({
+        post: postId,
+      }).session(session);
+
+      await Report.deleteMany({
+        $or: [
+          {
+            target: postId,
+            targetType: "Post",
+          },
+          {
+            target: { $in: commentIds },
+            targetType: "Comment",
+          },
+        ],
+      }).session(session);
+
+      await Post.findByIdAndUpdate(
+        postId,
+        {
+          $set: {
+            isRemoved: true,
+          },
         },
         {
-          target: { $in: commentIds },
-          targetType: "Comment",
+          new: true,
+          session,
         },
-      ],
-    }).session(session);
-
-    await SavedPost.deleteMany({
-      post: postId,
-    }).session(session);
-
-    await Report.deleteMany({
-      $or: [
-        {
-          target: postId,
-          targetType: "Post",
-        },
-        {
-          target: { $in: commentIds },
-          targetType: "Comment",
-        },
-      ],
-    }).session(session);
-
-    await Post.findByIdAndUpdate(
-      postId,
-      {
-        $set: {
-          isRemoved: true,
-        },
-      },
-      {
-        new: true,
-        session,
-      },
-    );
-
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
+      );
+    });
   } finally {
     await session.endSession();
   }

@@ -266,41 +266,65 @@ const updateCommunity = asyncHandler(async (req, res) => {
     }
   }
 
-  if (req.files?.icon && req.files.icon[0]) {
-    const result = await uploadToCloudinary(req.files.icon[0].buffer, "image");
-    updateData.icon = result.secure_url;
-    updateData.iconPublicId = result.public_id;
-    if (community.iconPublicId) {
-      await cloudinary.uploader.destroy(community.iconPublicId, { resource_type: "image" }).catch(e => console.error(e));
+  let newIconPublicId = null;
+  let newBannerPublicId = null;
+
+  try {
+    if (req.files?.icon && req.files.icon[0]) {
+      const result = await uploadToCloudinary(req.files.icon[0].buffer, "image");
+      updateData.icon = result.secure_url;
+      updateData.iconPublicId = result.public_id;
+      newIconPublicId = result.public_id;
     }
-  }
 
-  if (req.files?.banner && req.files.banner[0]) {
-    const result = await uploadToCloudinary(req.files.banner[0].buffer, "image");
-    updateData.banner = result.secure_url;
-    updateData.bannerPublicId = result.public_id;
-    if (community.bannerPublicId) {
-      await cloudinary.uploader.destroy(community.bannerPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    if (req.files?.banner && req.files.banner[0]) {
+      const result = await uploadToCloudinary(req.files.banner[0].buffer, "image");
+      updateData.banner = result.secure_url;
+      updateData.bannerPublicId = result.public_id;
+      newBannerPublicId = result.public_id;
     }
-  }
 
-  const updatedCommunity = await Community.findByIdAndUpdate(
-    communityId,
-    {
-      $set: updateData,
-    },
-    {
-      new: true,
-      runValidators: true,
-    },
-  );
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, updatedCommunity, "Community updated Successfully"),
+    const updatedCommunity = await Community.findByIdAndUpdate(
+      communityId,
+      {
+        $set: updateData,
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
     );
+
+    // Clean up old media after successful database update
+    if (newIconPublicId && community.iconPublicId) {
+      cloudinary.uploader.destroy(community.iconPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    }
+    if (newBannerPublicId && community.bannerPublicId) {
+      cloudinary.uploader.destroy(community.bannerPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    }
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          updatedCommunity,
+          "Community updated successfully",
+        ),
+      );
+  } catch (error) {
+    // If database update fails, clean up the newly uploaded media
+    if (newIconPublicId) {
+      cloudinary.uploader.destroy(newIconPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    }
+    if (newBannerPublicId) {
+      cloudinary.uploader.destroy(newBannerPublicId, { resource_type: "image" }).catch(e => console.error(e));
+    }
+    throw error;
+  }
 });
+
+
 
 const joinCommunity = asyncHandler(async (req, res) => {
   const { communityId } = req.params;

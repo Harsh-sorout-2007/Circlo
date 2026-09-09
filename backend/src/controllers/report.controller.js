@@ -76,29 +76,65 @@ const getReports = asyncHandler(async (req, res) => {
     throw new ApiError(403, "You do not have permission to view reports");
   }
 
-  const posts = await Post.find({
-    community: communityId,
-  }).select("_id");
+  const matchPipeline = [
+    {
+      $lookup: {
+        from: "posts",
+        localField: "target",
+        foreignField: "_id",
+        as: "postDetails",
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "target",
+        foreignField: "_id",
+        as: "commentDetails",
+      },
+    },
+    {
+      $lookup: {
+        from: "posts",
+        localField: "commentDetails.post",
+        foreignField: "_id",
+        as: "commentPostDetails",
+      },
+    },
+    {
+      $addFields: {
+        resolvedCommunity: {
+          $cond: {
+            if: { $eq: ["$targetType", "Post"] },
+            then: { $arrayElemAt: ["$postDetails.community", 0] },
+            else: { $arrayElemAt: ["$commentPostDetails.community", 0] },
+          },
+        },
+      },
+    },
+    {
+      $match: {
+        resolvedCommunity: new mongoose.Types.ObjectId(communityId),
+      },
+    },
+  ];
 
-  const postIds = posts.map((post) => post._id);
+  const countResult = await Report.aggregate([...matchPipeline, { $count: "total" }]);
+  const totalReports = countResult.length > 0 ? countResult[0].total : 0;
+  const totalPages = Math.ceil(totalReports / limit);
 
-  const comments = await Comment.find({
-    post: { $in: postIds },
-  }).select("_id");
+  const paginatedReportIds = await Report.aggregate([
+    ...matchPipeline,
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    { $project: { _id: 1 } },
+  ]);
 
-  const commentIds = comments.map((comment) => comment._id);
+  const reportIds = paginatedReportIds.map((r) => r._id);
 
-  const query = {
-    $or: [
-      { targetType: "Post", target: { $in: postIds } },
-      { targetType: "Comment", target: { $in: commentIds } },
-    ],
-  };
-
-  const paginatedReports = await Report.find(query)
+  const paginatedReports = await Report.find({ _id: { $in: reportIds } })
     .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
     .populate("reporter", "username displayName avatar")
     .populate({
       path: "target",
@@ -116,9 +152,6 @@ const getReports = asyncHandler(async (req, res) => {
         },
       ],
     });
-
-  const totalReports = await Report.countDocuments(query);
-  const totalPages = Math.ceil(totalReports / limit);
 
   return res.status(200).json(
     new ApiResponse(

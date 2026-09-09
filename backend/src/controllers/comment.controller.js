@@ -270,23 +270,25 @@ const deleteComment = asyncHandler(async (req, res) => {
 
   try {
     await session.withTransaction(async () => {
-      await Comment.findByIdAndUpdate(
-        commentId,
+      const updatedComment = await Comment.findOneAndUpdate(
+        { _id: commentId, isRemoved: false },
         {
           $set: {
             isRemoved: true,
           },
         },
-        { session },
+        { session, new: true },
       );
 
-      await Post.findOneAndUpdate(
-        { _id: postId, commentCount: { $gt: 0 } },
-        {
-          $inc: { commentCount: -1 },
-        },
-        { session },
-      );
+      if (updatedComment) {
+        await Post.findOneAndUpdate(
+          { _id: postId, commentCount: { $gt: 0 } },
+          {
+            $inc: { commentCount: -1 },
+          },
+          { session },
+        );
+      }
     });
   } finally {
     await session.endSession();

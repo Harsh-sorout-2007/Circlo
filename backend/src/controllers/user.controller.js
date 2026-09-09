@@ -38,37 +38,52 @@ const updateProfile = asyncHandler(async (req, res) => {
 
   const userToUpdate = await User.findById(userId);
 
-  if (req.file) {
-    const result = await uploadToCloudinary(req.file.buffer, "image");
-    updates.avatar = result.secure_url;
-    updates.avatarPublicId = result.public_id;
+  let newAvatarPublicId = null;
 
-    if (userToUpdate.avatarPublicId) {
-      await cloudinary.uploader.destroy(userToUpdate.avatarPublicId, {
+  try {
+    if (req.file) {
+      const result = await uploadToCloudinary(req.file.buffer, "image");
+      updates.avatar = result.secure_url;
+      updates.avatarPublicId = result.public_id;
+      newAvatarPublicId = result.public_id;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      throw new ApiError(400, "No fields provided for update");
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: updates,
+      },
+      { new: true, runValidators: true },
+    ).select("-password -refreshToken");
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    // Clean up old media after successful database update
+    if (newAvatarPublicId && userToUpdate.avatarPublicId) {
+      cloudinary.uploader.destroy(userToUpdate.avatarPublicId, {
         resource_type: "image",
       }).catch(err => console.error("Cloudinary cleanup error:", err));
     }
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "User profile updated successfully"));
+  } catch (error) {
+    if (newAvatarPublicId) {
+      cloudinary.uploader.destroy(newAvatarPublicId, {
+        resource_type: "image",
+      }).catch(err => console.error("Cloudinary cleanup error:", err));
+    }
+    throw error;
   }
 
-  if (Object.keys(updates).length === 0) {
-    throw new ApiError(400, "No fields provided for update");
-  }
 
-  const user = await User.findByIdAndUpdate(
-    userId,
-    {
-      $set: updates,
-    },
-    { new: true, runValidators: true },
-  ).select("-password -refreshToken");
-
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, user, "User profile updated successfully"));
 });
 const searchUsers = asyncHandler(async (req, res) => {
   const { q } = req.query;

@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
-  const diff = Date.now() - date.getTime();
+  const diff = Math.max(0, Date.now() - date.getTime());
   
-  if (diff < 0) return 'Just now';
+  if (diff === 0) return 'Just now';
   
   const seconds = Math.floor(diff / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -23,26 +23,19 @@ const formatTimeAgo = (dateStr) => {
 };
 
 export const RelativeTime = ({ dateStr, className = "" }) => {
-  const [formattedTime, setFormattedTime] = useState('');
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    if (!dateStr) return;
-    
-    const timer = setTimeout(() => {
-      setFormattedTime(formatTimeAgo(dateStr));
-    }, 0);
-
     const interval = setInterval(() => {
-      setFormattedTime(formatTimeAgo(dateStr));
+      setTick((t) => t + 1);
     }, 60000);
 
-    return () => {
-      clearTimeout(timer);
-      clearInterval(interval);
-    };
-  }, [dateStr]);
+    return () => clearInterval(interval);
+  }, []);
 
   if (!dateStr) return null;
+
+  const formattedTime = formatTimeAgo(dateStr);
 
   return (
     <span className={className} title={new Date(dateStr).toLocaleString()}>
