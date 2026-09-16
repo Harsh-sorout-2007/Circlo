@@ -6,6 +6,7 @@ import { Report } from "../models/report.model.js";
 import { Post } from "../models/post.model.js";
 import { Comment } from "../models/comment.model.js";
 import { CommunityMember } from "../models/communityMember.model.js";
+import mongoose from "mongoose";
 
 const createReport = asyncHandler(async (req, res) => {
   const reporter = req.user._id;
