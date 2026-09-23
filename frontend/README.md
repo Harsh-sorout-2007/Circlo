@@ -1,16 +1,84 @@
-# React + Vite
+# Circlo - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend repository for **Circlo**, a Reddit-inspired full-stack web application. It is built using modern web technologies to provide a fast, responsive, and intuitive user interface.
 
-Currently, two official plugins are available:
+## 🚀 Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19**: A robust JavaScript library for building user interfaces.
+- **Vite**: Next-generation, lightning-fast frontend tooling and build process.
+- **React Router DOM**: Declarative routing for React web applications.
+- **Axios**: Promise-based HTTP client for interacting with the backend API.
+- **Lucide React**: Beautiful and consistent iconography.
 
-## React Compiler
+## 📁 Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+frontend/
+├── public/          # Static assets that don't need processing
+├── src/             # Main source code
+│   ├── assets/      # Local assets (images, stylesheets, etc.)
+│   ├── components/  # Reusable React components
+│   ├── pages/       # Application views/pages for routing
+│   ├── App.jsx      # Main application component layout
+│   └── main.jsx     # Entry point to the React application
+├── package.json     # Project metadata and dependencies
+└── vite.config.js   # Vite bundler configuration
+```
 
-## Expanding the ESLint configuration
+## 🛠️ Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Follow these steps to set up the frontend locally for development.
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
+- npm (comes with Node.js)
+
+### Installation
+
+1. Make sure you are in the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install the project dependencies:
+   ```bash
+   npm install
+   ```
+
+### Running the Development Server
+
+To start the Vite development server with Hot Module Replacement (HMR):
+
+```bash
+npm run dev
+```
+
+The application will be accessible at `http://localhost:5173` by default.
+
+### Building for Production
+
+To create an optimized, production-ready build:
+
+```bash
+npm run build
+```
+
+The compiled assets will be generated in the `dist` folder, which can then be deployed to any static hosting platform like Vercel, Netlify, or AWS S3.
+
+To preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## 🧑‍💻 Available Scripts
+
+- `npm run dev`: Starts the local development server.
+- `npm run build`: Compiles the application for production.
+- `npm run lint`: Runs ESLint to analyze the code for potential errors and styling consistency.
+- `npm run preview`: Previews the built production app locally.
+
+## 🔗 Backend Integration
+
+This frontend is designed to work seamlessly with the Circlo backend (built with Express.js and MongoDB). Ensure that the backend server is running locally or deployed, and that any required environment variables (like API base URLs) are configured correctly so the frontend can interact with the API.
